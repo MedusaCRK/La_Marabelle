@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>La Marabelle — Mini‑jeu</title>
+  <meta name="description" content="Un petit jeu à grignoter avec votre confiture La Marabelle. Tapez les mirabelles avant la fin du chrono !" />
+  <style>
+    :root{
+      --bg:#fff9f4;
+      --ink:#2b1e17;
+      --accent:#ffb703;
+      --accent2:#fb8500;
+      --mint:#8ecae6;
+      --leaf:#3a7a3a;
+      --card:#ffffffee;
+      --shadow: 0 8px 30px rgba(0,0,0,.08);
+    }
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-rounded, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color:var(--ink); background: radial-gradient(80% 60% at 50% 20%, #fff3e0, var(--bg));
+      display:flex; align-items:center; justify-content:center; padding:16px;
+    }
+    .app{ width:min(720px, 100%); }
+    .card{
+      background:var(--card); border-radius:24px; box-shadow:var(--shadow); padding:18px; overflow:hidden; position:relative;
+      border:2px solid #f5e1c6;
+    }
+    header{display:flex; align-items:center; gap:12px;}
+    .jar{ width:42px; height:56px; border:2px solid #b76e00; border-radius:10px 10px 16px 16px; position:relative; background:linear-gradient(180deg, #ffd07a, #ffb703);} 
+    .jar:before{ content:""; position:absolute; top:-10px; left:6px; right:6px; height:12px; background:#8ecae6; border:2px solid #2b7085; border-radius:6px;}
+    h1{ font-size:1.4rem; margin:6px 0 0; line-height:1.1; }
+    .tag{font-size:.8rem; opacity:.8}
+    .playground{ position:relative; height:62vh; min-height:360px; max-height:740px; background: repeating-linear-gradient( 45deg, rgba(255,183,3,.10), rgba(255,183,3,.10) 10px, rgba(255,183,3,.08) 10px, rgba(255,183,3,.08) 20px ); border-radius:18px; margin:12px 0; border:1px dashed #f3cf9c; }
+    .hud{ position:absolute; inset:12px 12px auto 12px; display:flex; gap:8px; flex-wrap:wrap; z-index:5}
+    .pill{ background:#fff; border:1px solid #f0e0c8; border-radius:999px; padding:8px 12px; box-shadow:var(--shadow); display:flex; align-items:center; gap:8px; font-weight:600; }
+    .dot{ width:10px; height:10px; border-radius:50%; background:var(--accent2); }
+    .leaf{ background:var(--leaf); }
+    .btn{ appearance:none; border:0; background:var(--accent2); color:white; padding:12px 16px; border-radius:12px; font-weight:700; box-shadow:0 8px 16px rgba(251,133,0,.25); cursor:pointer; }
+    .btn.secondary{ background:#fff; color:var(--ink); border:1px solid #f0e0c8; box-shadow:var(--shadow); }
+    .cta{ display:flex; gap:10px; flex-wrap:wrap; }
+    .fruit{ position:absolute; width:54px; height:54px; border-radius:50%; background: radial-gradient(circle at 30% 30%, #ffd77a, #ffb703 60%);
+      display:grid; place-items:center; font-size:28px; user-select:none; touch-action:none; box-shadow:0 6px 12px rgba(0,0,0,.15); border:2px solid #b76e00;}
+    .fruit:after{ content:""; position:absolute; width:14px; height:10px; background:var(--leaf); border-radius:0 10px 10px 10px; top:-6px; left:10px; transform:rotate(-20deg); }
+    .pop{ animation: pop .2s ease; }
+    @keyframes pop{ from{ transform:scale(.8); opacity:.6 } to{ transform:scale(1); opacity:1 } }
+    .center{ text-align:center; }
+    .big{ font-size:1.1rem; }
+    .confetti{ pointer-events:none; position:absolute; inset:0; overflow:hidden; }
+    footer{ font-size:.9rem; opacity:.8; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
+    .slogan{ font-weight:700; }
+    .linklike{ text-decoration:underline; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card">
+      <header>
+        <div class="jar" aria-hidden="true"></div>
+        <div>
+          <h1>La Marabelle — Chasse aux mirabelles</h1>
+          <div class="tag">Tapez les mirabelles avant la fin du chrono 🍯</div>
+        </div>
+      </header>
+      <div class="playground" id="playground" role="application" aria-label="Aire de jeu">
+        <div class="hud">
+          <div class="pill"><span class="dot"></span> Temps : <span id="time">15</span>s</div>
+          <div class="pill"><span class="dot leaf"></span> Récolte : <span id="score">0</span>/10</div>
+        </div>
+      </div>
+      <div class="center">
+        <p class="big" id="status">Prêt ? Appuyez sur « Lancer » puis tapez les mirabelles qui apparaissent. 10 à récolter en 15 secondes !</p>
+        <div class="cta">
+          <button class="btn" id="start">Lancer</button>
+          <button class="btn secondary" id="how">Comment jouer</button>
+        </div>
+      </div>
+      <footer>
+        <div class="slogan">« Pour une tartine qui ne manque pas de Mara ! »</div>
+        <div class="linklike" id="credits">À propos</div>
+      </footer>
+      <canvas class="confetti" id="confetti"></canvas>
+    </div>
+  </div>
+  <dialog id="modalHow">
+    <form method="dialog" style="max-width:560px">
+      <p><strong>Objectif :</strong> toucher 10 mirabelles en moins de 15 secondes. Chaque mirabelle apparaît à un endroit aléatoire. Tapez vite !</p>
+      <p>Astuce : jouez à une main, l’index prêt à bondir 🫶</p>
+      <menu style="display:flex; gap:8px; justify-content:flex-end">
+        <button value="cancel" class="btn secondary">OK</button>
+      </menu>
+    </form>
+  </dialog>
+  <dialog id="modalAbout">
+    <form method="dialog" style="max-width:560px">
+      <p><strong>La Marabelle</strong> — confiture maison pleine de soleil lorrain. Jeu 100% local, 0% téléchargement. Fonctionne hors‑ligne après ouverture 💛</p>
+      <p style="font-size:.9rem; opacity:.9">Vous organisez un concours ? Remplacez le message de victoire par un code ou un lien secret dans le code (section <em>// Succès</em>).</p>
+      <menu style="display:flex; gap:8px; justify-content:flex-end">
+        <button value="cancel" class="btn secondary">Fermer</button>
+      </menu>
+    </form>
+  </dialog>
+  <script>
+    const $ = (s,el=document)=>el.querySelector(s);
+    const pg = $('#playground');
+    const startBtn = $('#start');
+    const howBtn = $('#how');
+    const statusEl = $('#status');
+    const timeEl = $('#time');
+    const scoreEl = $('#score');
+    const dlgHow = $('#modalHow');
+    const dlgAbout = $('#modalAbout');
+    const credits = $('#credits');
+    const confetti = $('#confetti');
+    let timer=null, timeLeft=15, score=0, goal=10, running=false;
+    function rand(min,max){ return Math.random()*(max-min)+min }
+    function spawnFruit(){
+      const f = document.createElement('div');
+      f.className='fruit pop'; f.setAttribute('role','button'); f.setAttribute('aria-label','Mirabelle');
+      f.style.left = Math.max(4, rand(0, pg.clientWidth-58)) + 'px';
+      f.style.top  = Math.max(40, rand(36, pg.clientHeight-58)) + 'px';
+      f.innerHTML = '🍑';
+      f.addEventListener('pointerdown', ()=> collect(f));
+      pg.appendChild(f);
+      setTimeout(()=> f.classList.remove('pop'), 220);
+      setTimeout(()=> f.remove(), 1600);
+    }
+    function collect(el){
+      if(!running) return;
+      el.remove();
+      score++; scoreEl.textContent=score;
+      burst(el.offsetLeft+27, el.offsetTop+27);
+      if(score>=goal){ win(); }
+    }
+    function start(){
+      if(running) return; running=true; score=0; timeLeft=15;
+      scoreEl.textContent='0'; timeEl.textContent=timeLeft;
+      statusEl.textContent='Allez ! Récoltez 10 mirabelles →';
+      [...pg.querySelectorAll('.fruit')].forEach(el => el.remove());
+      const spawner = setInterval(()=>{ if(!running) return clearInterval(spawner); spawnFruit(); }, 380);
+      timer = setInterval(()=>{
+        timeLeft--; timeEl.textContent=timeLeft;
+        if(timeLeft<=0){ lose(); }
+      },1000);
+    }
+    function win(){
+      running=false; clearInterval(timer);
+      statusEl.innerHTML = 'Bravo ! Vous avez libéré un <strong>p’tit cadeau</strong> :<br>💌 Mot secret : <strong>MARABELLE</strong> — chuchotez‑le au stand pour une surprise.';
+      rain();
+    }
+    function lose(){
+      running=false; clearInterval(timer);
+      statusEl.innerHTML = 'Pas grave ! Encore une tartine ? 😂<br><small>Astuce : gardez le doigt prêt et visez le milieu.</small>';
+    }
+    function burst(x,y){
+      const ctx = confetti.getContext('2d');
+      for(let i=0;i<12;i++) particles.push({x, y, vx:rand(-2,2), vy:rand(-3,-1), a:rand(0,Math.PI*2), life:rand(18,28)});
+      if(!anim) anim = requestAnimationFrame(draw);
+    }
+    let particles=[], anim=null;
+    function sizeCanvas(){ confetti.width = pg.clientWidth; confetti.height = pg.clientHeight; }
+    function draw(){
+      const ctx = confetti.getContext('2d');
+      ctx.clearRect(0,0,confetti.width, confetti.height);
+      particles.forEach(p=>{
+        p.x+=p.vx; p.y+=p.vy; p.vy+=0.08; p.life-=1; p.a+=0.15;
+        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.a);
+        ctx.fillStyle = ['#ffb703','#fb8500','#8ecae6','#3a7a3a'][p.x%4|0];
+        ctx.fillRect(-3,-3,6,6); ctx.restore();
+      });
+      particles = particles.filter(p=>p.life>0 && p.y < confetti.height+8);
+      if(particles.length) anim = requestAnimationFrame(draw); else { cancelAnimationFrame(anim); anim=null; }
+    }
+    function rain(){
+      for(let i=0;i<80;i++) particles.push({x:rand(0,confetti.width), y:rand(-60,-10), vx:rand(-.5,.5), vy:rand(1,3), a:rand(0,Math.PI*2), life:rand(40,70)});
+      if(!anim) anim = requestAnimationFrame(draw);
+    }
+    startBtn.addEventListener('click', start);
+    howBtn.addEventListener('click', ()=> dlgHow.showModal());
+    credits.addEventListener('click', ()=> dlgAbout.showModal());
+    addEventListener('resize', sizeCanvas);
+    const ro = new ResizeObserver(sizeCanvas); ro.observe(pg);
+    sizeCanvas();
+  </script>
+</body>
+</html>
