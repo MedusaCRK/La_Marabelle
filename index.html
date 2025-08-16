@@ -1,187 +1,371 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>La Marabelle — Mini‑jeu</title>
-  <meta name="description" content="Un petit jeu à grignoter avec votre confiture La Marabelle. Tapez les mirabelles avant la fin du chrono !" />
-  <style>
-    :root{
-      --bg:#fff9f4;
-      --ink:#2b1e17;
-      --accent:#ffb703;
-      --accent2:#fb8500;
-      --mint:#8ecae6;
-      --leaf:#3a7a3a;
-      --card:#ffffffee;
-      --shadow: 0 8px 30px rgba(0,0,0,.08);
-    }
-    html,body{height:100%}
-    body{
-      margin:0; font-family: ui-rounded, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
-      color:var(--ink); background: radial-gradient(80% 60% at 50% 20%, #fff3e0, var(--bg));
-      display:flex; align-items:center; justify-content:center; padding:16px;
-    }
-    .app{ width:min(720px, 100%); }
-    .card{
-      background:var(--card); border-radius:24px; box-shadow:var(--shadow); padding:18px; overflow:hidden; position:relative;
-      border:2px solid #f5e1c6;
-    }
-    header{display:flex; align-items:center; gap:12px;}
-    .jar{ width:42px; height:56px; border:2px solid #b76e00; border-radius:10px 10px 16px 16px; position:relative; background:linear-gradient(180deg, #ffd07a, #ffb703);} 
-    .jar:before{ content:""; position:absolute; top:-10px; left:6px; right:6px; height:12px; background:#8ecae6; border:2px solid #2b7085; border-radius:6px;}
-    h1{ font-size:1.4rem; margin:6px 0 0; line-height:1.1; }
-    .tag{font-size:.8rem; opacity:.8}
-    .playground{ position:relative; height:62vh; min-height:360px; max-height:740px; background: repeating-linear-gradient( 45deg, rgba(255,183,3,.10), rgba(255,183,3,.10) 10px, rgba(255,183,3,.08) 10px, rgba(255,183,3,.08) 20px ); border-radius:18px; margin:12px 0; border:1px dashed #f3cf9c; }
-    .hud{ position:absolute; inset:12px 12px auto 12px; display:flex; gap:8px; flex-wrap:wrap; z-index:5}
-    .pill{ background:#fff; border:1px solid #f0e0c8; border-radius:999px; padding:8px 12px; box-shadow:var(--shadow); display:flex; align-items:center; gap:8px; font-weight:600; }
-    .dot{ width:10px; height:10px; border-radius:50%; background:var(--accent2); }
-    .leaf{ background:var(--leaf); }
-    .btn{ appearance:none; border:0; background:var(--accent2); color:white; padding:12px 16px; border-radius:12px; font-weight:700; box-shadow:0 8px 16px rgba(251,133,0,.25); cursor:pointer; }
-    .btn.secondary{ background:#fff; color:var(--ink); border:1px solid #f0e0c8; box-shadow:var(--shadow); }
-    .cta{ display:flex; gap:10px; flex-wrap:wrap; }
-    .fruit{ position:absolute; width:54px; height:54px; border-radius:50%; background: radial-gradient(circle at 30% 30%, #ffd77a, #ffb703 60%);
-      display:grid; place-items:center; font-size:28px; user-select:none; touch-action:none; box-shadow:0 6px 12px rgba(0,0,0,.15); border:2px solid #b76e00;}
-    .fruit:after{ content:""; position:absolute; width:14px; height:10px; background:var(--leaf); border-radius:0 10px 10px 10px; top:-6px; left:10px; transform:rotate(-20deg); }
-    .pop{ animation: pop .2s ease; }
-    @keyframes pop{ from{ transform:scale(.8); opacity:.6 } to{ transform:scale(1); opacity:1 } }
-    .center{ text-align:center; }
-    .big{ font-size:1.1rem; }
-    .confetti{ pointer-events:none; position:absolute; inset:0; overflow:hidden; }
-    footer{ font-size:.9rem; opacity:.8; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
-    .slogan{ font-weight:700; }
-    .linklike{ text-decoration:underline; cursor:pointer; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>La Marabelle — Panier à Mirabelles (Vidéo + Niveaux)</title>
+<meta name="description" content="Attrape les fruits ! 3 niveaux, gnome, pot de confiture, fruits pourris, et fond vidéo.">
+<style>
+  :root{
+    --ink:#2b1e17; --card:#ffffffea; --shadow:0 12px 30px rgba(0,0,0,.12);
+    --accent:#ffb703; --accent2:#fb8500;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{ margin:0; font-family: ui-rounded, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; color:var(--ink); overflow:hidden; }
+
+  /* Vidéo de fond */
+  #bgVideo{
+    position: fixed; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; z-index: -2; background:#fff9f4;
+  }
+  /* Voile léger pour le contraste du HUD/jeu */
+  .videoOverlay{
+    position: fixed; inset:0; z-index:-1;
+    background: radial-gradient(100% 60% at 50% 20%, rgba(255,255,255,.15), rgba(0,0,0,.20));
+    pointer-events:none;
+  }
+
+  /* Conteneur jeu */
+  #game {position:relative; width:100vw; height:100vh; overflow:hidden;}
+
+  /* HUD */
+  .hud{ position:absolute; top:10px; left:10px; right:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; z-index:5; }
+  .pill{ background:var(--card); border:1px solid #f0e0c8; padding:8px 12px; border-radius:999px; box-shadow:var(--shadow); font-weight:700; backdrop-filter:saturate(1.2) blur(2px); }
+  .spacer{ flex:1 }
+  .btn{ appearance:none; border:0; background:var(--accent2); color:#fff; padding:10px 14px; border-radius:12px; font-weight:800; box-shadow:0 10px 18px rgba(251,133,0,.25); cursor:pointer; }
+  .btn.ghost{ background:#fff; color:var(--ink); border:1px solid #f0e0c8; }
+
+  /* Panier */
+  #basket{
+    position:absolute; bottom:8vh; width:110px; height:64px; left:50%; transform:translateX(-50%);
+    border-radius:0 0 55px 55px; background:repeating-linear-gradient(45deg, #b97a3b, #b97a3b 10px, #d49555 10px, #d49555 20px);
+    border:3px solid #8b5a2b; box-shadow:0 8px 18px rgba(0,0,0,.25) inset, 0 8px 18px rgba(0,0,0,.15);
+  }
+  #basket:before{
+    content:""; position:absolute; left:10px; right:10px; top:-36px; height:34px; border:6px solid #8b5a2b; border-bottom:none; border-radius:22px 22px 0 0;
+    box-shadow: inset 0 0 0 3px rgba(255,255,255,.25);
+    background:linear-gradient(180deg, rgba(255,255,255,.15), transparent);
+  }
+
+  /* Items */
+  .item{ position:absolute; width:58px; height:58px; will-change:transform; }
+  .item img, .item svg{ width:58px; height:58px; display:block; filter: drop-shadow(0 6px 6px rgba(0,0,0,.22)); }
+
+  /* Effets */
+  .float{ position:absolute; pointer-events:none; font-weight:900; text-shadow:0 2px 0 rgba(0,0,0,.1); animation: floatUp .8s ease-out forwards; }
+  @keyframes floatUp{ from{ transform:translate(-50%,0); opacity:0 } 20%{opacity:1} to{ transform:translate(-50%,-48px); opacity:0 } }
+  canvas#fx{ position:absolute; inset:0; pointer-events:none; }
+
+  /* Overlays */
+  .overlay{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(255,249,244,.55); backdrop-filter: blur(2px); z-index:6; padding:20px; text-align:center; }
+  .panel{ background:var(--card); border:1px solid #f0e0c8; border-radius:18px; box-shadow:var(--shadow); padding:20px; max-width:520px; }
+  .panel h2{ margin:6px 0 8px } .panel p{ margin:0 0 12px }
+
+  .credit{ position:absolute; bottom:8px; right:12px; font-size:.85rem; opacity:.8; text-shadow:0 1px 2px rgba(255,255,255,.6) }
+</style>
 </head>
 <body>
-  <div class="app">
-    <div class="card">
-      <header>
-        <div class="jar" aria-hidden="true"></div>
-        <div>
-          <h1>La Marabelle — Chasse aux mirabelles</h1>
-          <div class="tag">Tapez les mirabelles avant la fin du chrono 🍯</div>
-        </div>
-      </header>
-      <div class="playground" id="playground" role="application" aria-label="Aire de jeu">
-        <div class="hud">
-          <div class="pill"><span class="dot"></span> Temps : <span id="time">15</span>s</div>
-          <div class="pill"><span class="dot leaf"></span> Récolte : <span id="score">0</span>/10</div>
-        </div>
-      </div>
-      <div class="center">
-        <p class="big" id="status">Prêt ? Appuyez sur « Lancer » puis tapez les mirabelles qui apparaissent. 10 à récolter en 15 secondes !</p>
-        <div class="cta">
-          <button class="btn" id="start">Lancer</button>
-          <button class="btn secondary" id="how">Comment jouer</button>
-        </div>
-      </div>
-      <footer>
-        <div class="slogan">« Pour une tartine qui ne manque pas de Mara ! »</div>
-        <div class="linklike" id="credits">À propos</div>
-      </footer>
-      <canvas class="confetti" id="confetti"></canvas>
+<!-- Vidéo -->
+<video id="bgVideo" autoplay loop muted playsinline>
+  <source src="Images/fond.mp4" type="video/mp4">
+</video>
+<div class="videoOverlay"></div>
+
+<div id="game">
+  <!-- HUD -->
+  <div class="hud">
+    <div class="pill">Niveau : <span id="level">1</span>/3</div>
+    <div class="pill">Objectif : <span id="progress">0</span>/<span id="target">10</span></div>
+    <div class="pill">Score : <span id="score">0</span></div>
+    <div class="pill">Temps : <span id="time">20</span>s</div>
+    <div class="spacer"></div>
+    <button id="btnStart" class="btn">Démarrer</button>
+  </div>
+
+  <!-- Panier + FX -->
+  <div id="basket"></div>
+  <canvas id="fx"></canvas>
+
+  <!-- Overlays -->
+  <div id="intro" class="overlay">
+    <div class="panel">
+      <h2>La Marabelle — Panier à Mirabelles</h2>
+      <p>Attrape les fruits 🍑 ! Évite les pourris 🥀, vise le gnome 🍄 (+5) et le pot 🍯 (x2 pendant 5s).</p>
+      <p>3 niveaux : de doux à corsé. Prêt·e ?</p>
+      <button class="btn" id="introStart">Jouer</button>
     </div>
   </div>
-  <dialog id="modalHow">
-    <form method="dialog" style="max-width:560px">
-      <p><strong>Objectif :</strong> toucher 10 mirabelles en moins de 15 secondes. Chaque mirabelle apparaît à un endroit aléatoire. Tapez vite !</p>
-      <p>Astuce : jouez à une main, l’index prêt à bondir 🫶</p>
-      <menu style="display:flex; gap:8px; justify-content:flex-end">
-        <button value="cancel" class="btn secondary">OK</button>
-      </menu>
-    </form>
-  </dialog>
-  <dialog id="modalAbout">
-    <form method="dialog" style="max-width:560px">
-      <p><strong>La Marabelle</strong> — confiture maison pleine de soleil lorrain. Jeu 100% local, 0% téléchargement. Fonctionne hors‑ligne après ouverture 💛</p>
-      <p style="font-size:.9rem; opacity:.9">Vous organisez un concours ? Remplacez le message de victoire par un code ou un lien secret dans le code (section <em>// Succès</em>).</p>
-      <menu style="display:flex; gap:8px; justify-content:flex-end">
-        <button value="cancel" class="btn secondary">Fermer</button>
-      </menu>
-    </form>
-  </dialog>
-  <script>
-    const $ = (s,el=document)=>el.querySelector(s);
-    const pg = $('#playground');
-    const startBtn = $('#start');
-    const howBtn = $('#how');
-    const statusEl = $('#status');
-    const timeEl = $('#time');
-    const scoreEl = $('#score');
-    const dlgHow = $('#modalHow');
-    const dlgAbout = $('#modalAbout');
-    const credits = $('#credits');
-    const confetti = $('#confetti');
-    let timer=null, timeLeft=15, score=0, goal=10, running=false;
-    function rand(min,max){ return Math.random()*(max-min)+min }
-    function spawnFruit(){
-      const f = document.createElement('div');
-      f.className='fruit pop'; f.setAttribute('role','button'); f.setAttribute('aria-label','Mirabelle');
-      f.style.left = Math.max(4, rand(0, pg.clientWidth-58)) + 'px';
-      f.style.top  = Math.max(40, rand(36, pg.clientHeight-58)) + 'px';
-      f.innerHTML = '🍑';
-      f.addEventListener('pointerdown', ()=> collect(f));
-      pg.appendChild(f);
-      setTimeout(()=> f.classList.remove('pop'), 220);
-      setTimeout(()=> f.remove(), 1600);
+
+  <div id="between" class="overlay" style="display:none">
+    <div class="panel">
+      <h2 id="betweenTitle">Bravo !</h2>
+      <p id="betweenMsg">Niveau suivant ?</p>
+      <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap">
+        <button class="btn" id="nextLevel">Niveau suivant</button>
+        <button class="btn ghost" id="replayLevel">Rejouer ce niveau</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="gameover" class="overlay" style="display:none">
+    <div class="panel">
+      <h2 id="overTitle">Oups…</h2>
+      <p id="overMsg">Tu feras mieux la prochaine fois !</p>
+      <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap">
+        <button class="btn" id="retry">Réessayer</button>
+        <button class="btn ghost" id="quit">Quitter</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="credit">« Pour une tartine qui ne manque pas de Mara ! »</div>
+</div>
+
+<script>
+/* ========= Sprites bonus inline (gnome/pot/pourri) ========= */
+const SVG_ROTTEN = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 58 58">
+  <circle cx="29" cy="29" r="26" fill="#b56a2a" stroke="#5e2b18" stroke-width="3"/>
+  <path d="M18 36 q10 -6 20 0" stroke="#2b1e17" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <circle cx="21" cy="27" r="4" fill="#2b1e17"/><circle cx="37" cy="27" r="4" fill="#2b1e17"/>
+</svg>`;
+const SVG_JAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 58 58">
+  <rect x="12" y="10" width="34" height="40" rx="10" fill="#ffcf6a" stroke="#b76e00" stroke-width="3"/>
+  <rect x="14" y="6" width="30" height="10" rx="4" fill="#8ecae6" stroke="#2b7085" stroke-width="3"/>
+  <path d="M15 28 q7 6 14 0 q7 -6 14 0" stroke="#e58a00" stroke-width="2" fill="none"/>
+</svg>`;
+const SVG_GNOME = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 58 58">
+  <circle cx="29" cy="36" r="12" fill="#f2d3b1" stroke="#a06b3b" stroke-width="3"/>
+  <path d="M17 38 q12 8 24 0" stroke="#a06b3b" stroke-width="3" fill="none"/>
+  <polygon points="29,6 16,30 42,30" fill="#ef476f" stroke="#a61f3b" stroke-width="3"/>
+  <circle cx="24" cy="34" r="2" fill="#2b1e17"/><circle cx="34" cy="34" r="2" fill="#2b1e17"/>
+</svg>`;
+
+/* ========= Utilitaires ========= */
+const $ = s => document.querySelector(s);
+const game = $('#game'), basket = $('#basket');
+const fx = $('#fx'); const ctx = fx.getContext('2d');
+function setFxSize(){ fx.width = game.clientWidth; fx.height = game.clientHeight }
+addEventListener('resize', setFxSize); setFxSize();
+function rand(min,max){ return Math.random()*(max-min)+min; }
+function now(){ return performance.now(); }
+
+let particles = [], anim=null;
+function burst(x,y,colors=['#ffb703','#fb8500','#8ecae6','#3a7a3a']){
+  for(let i=0;i<18;i++){
+    particles.push({x,y,vx:rand(-2,2),vy:rand(-3,0),a:rand(0,Math.PI*2),life:rand(28,50),c:colors[i%colors.length]});
+  }
+  if(!anim) anim = requestAnimationFrame(drawFx);
+}
+function drawFx(){
+  ctx.clearRect(0,0,fx.width,fx.height);
+  particles.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.vy += .08; p.life--;
+    ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.a+=.1);
+    ctx.fillStyle=p.c; ctx.fillRect(-3,-3,6,-6);
+    ctx.restore();
+  });
+  particles = particles.filter(p=>p.life>0 && p.y<fx.height+8);
+  anim = particles.length ? requestAnimationFrame(drawFx) : null;
+}
+function floatLabel(x,y,text,good=true){
+  const el=document.createElement('div');
+  el.className='float'; el.textContent=text;
+  el.style.color = good ? '#0c8b4b' : '#b02e2e';
+  el.style.left=x+'px'; el.style.top=y+'px';
+  game.appendChild(el); setTimeout(()=> el.remove(), 820);
+}
+
+/* ========= Config fruits pixel (tes SVG) ========= */
+const FRUIT_FILES = [
+  'Pomme.svg',
+  'Pomme rouge.svg',
+  'Poire.svg',
+  'Orange.svg',
+  'Citron.svg',
+  'Prune.svg'
+];
+function fruitImgTag(){
+  // gère les espaces via encodeURIComponent
+  const name = FRUIT_FILES[(Math.random()*FRUIT_FILES.length)|0];
+  const src = 'Images/SVG/' + encodeURIComponent(name);
+  return `<img alt="fruit" src="${src}" />`;
+}
+
+/* ========= Logique du jeu ========= */
+const levelLabel = $('#level'), progressEl = $('#progress'), targetEl = $('#target');
+const scoreEl = $('#score'), timeEl = $('#time');
+const intro = $('#intro'), between = $('#between'), gameover = $('#gameover');
+const betweenTitle = $('#betweenTitle'), betweenMsg = $('#betweenMsg');
+const overTitle = $('#overTitle'), overMsg = $('#overMsg');
+const btnStart = $('#btnStart');
+$('#introStart').onclick = () => startLevel(0);
+btnStart.onclick = () => startLevel(levelIndex);
+$('#nextLevel').onclick = ()=> startLevel(levelIndex+1);
+$('#replayLevel').onclick = ()=> startLevel(levelIndex);
+$('#retry').onclick = ()=> startLevel(levelIndex);
+$('#quit').onclick = ()=> { gameover.style.display='none'; intro.style.display='grid'; };
+
+let items=[], lastSpawn=0, raf=null, tPrev=0, timerId=null, levelIndex=0;
+let caught=0, score=0, timeLeft=20, multiplier=1, multTimeout=null;
+let basketX = game.clientWidth/2 - 55;
+const LEVELS = [
+  { target:10, duration:20, baseSpeed:150, spawn:650, bad:0.05, gnome:0.04, jar:0.05 },
+  { target:15, duration:20, baseSpeed:200, spawn:520, bad:0.08, gnome:0.05, jar:0.05 },
+  { target:20, duration:20, baseSpeed:260, spawn:420, bad:0.12, gnome:0.06, jar:0.06 }
+];
+
+function startLevel(i){
+  if(i>=LEVELS.length){
+    between.style.display='none'; intro.style.display='grid';
+    betweenTitle.textContent = 'Champion·ne de la confiture !';
+    return;
+  }
+  levelIndex = i;
+  intro.style.display='none'; between.style.display='none'; gameover.style.display='none';
+  items.forEach(el=>el.node.remove()); items=[]; lastSpawn=0;
+  caught=0; timeLeft=LEVELS[i].duration; multiplier=1; clearTimeout(multTimeout);
+  scoreEl.textContent = score; progressEl.textContent = caught; targetEl.textContent = LEVELS[i].target;
+  timeEl.textContent = timeLeft; levelLabel.textContent = i+1;
+  clearInterval(timerId);
+  timerId = setInterval(()=>{ 
+    timeLeft--; timeEl.textContent=timeLeft; 
+    if(timeLeft<=0){ finish(false); }
+  },1000);
+  cancelAnimationFrame(raf); tPrev = now(); raf = requestAnimationFrame(tick);
+}
+
+function finish(win){
+  clearInterval(timerId); cancelAnimationFrame(raf);
+  items.forEach(el=>el.node.remove()); items=[];
+  if(win){
+    if(levelIndex < LEVELS.length-1){
+      betweenTitle.textContent = 'Bravo !';
+      betweenMsg.textContent = `Cap sur le niveau ${levelIndex+2} ?`;
+      between.style.display='grid';
+    }else{
+      betweenTitle.textContent = 'Grand·e Maître des Fruits 👑';
+      betweenMsg.textContent = `Score final : ${score}`;
+      between.style.display='grid';
+      $('#nextLevel').style.display='none';
+      setTimeout(()=>$('#nextLevel').style.display='', 10);
     }
-    function collect(el){
-      if(!running) return;
-      el.remove();
-      score++; scoreEl.textContent=score;
-      burst(el.offsetLeft+27, el.offsetTop+27);
-      if(score>=goal){ win(); }
+  }else{
+    overTitle.textContent = 'Oups… Temps écoulé !';
+    overMsg.textContent = `Récolte : ${caught}/${LEVELS[levelIndex].target} — Score : ${score}`;
+    gameover.style.display='grid';
+  }
+}
+
+function rectsOverlap(a,b){
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+}
+
+function tick(ts){
+  const dt = (ts - tPrev)/1000; tPrev = ts; const L = LEVELS[levelIndex];
+  if(ts - lastSpawn > L.spawn){ spawnOne(); lastSpawn = ts; }
+  const H = game.clientHeight;
+  const basketRect = {left:basketX, right:basketX+110, top:game.clientHeight- (8*H/100) -64, bottom:game.clientHeight- (8*H/100)};
+  for(let k=items.length-1;k>=0;k--){
+    const it = items[k];
+    it.vy += 300*dt;
+    it.y += it.vy*dt;
+    it.node.style.transform = `translate(${it.x}px, ${it.y}px) rotate(${it.rot+=it.rotSpd}deg)`;
+    const itRect = {left:it.x, right:it.x+58, top:it.y, bottom:it.y+58};
+    if(rectsOverlap(itRect, basketRect)){ catchItem(it); items.splice(k,1); continue; }
+    if(it.y > H){ it.node.remove(); items.splice(k,1); }
+  }
+  raf = requestAnimationFrame(tick);
+}
+
+function spawnOne(){
+  const L = LEVELS[levelIndex];
+  const r = Math.random();
+  let type='mirabelle';
+  if(r < L.bad) type='rotten';
+  else if(r < L.bad + L.gnome) type='gnome';
+  else if(r < L.bad + L.gnome + L.jar) type='jar';
+
+  const node = document.createElement('div'); node.className = `item ${type}`;
+  // Fruits normaux = tes SVG pixel (img), le reste = SVG inline
+  if(type==='mirabelle'){
+    node.innerHTML = fruitImgTag();
+  }else if(type==='rotten'){
+    node.innerHTML = SVG_ROTTEN;
+  }else if(type==='jar'){
+    node.innerHTML = SVG_JAR;
+  }else if(type==='gnome'){
+    node.innerHTML = SVG_GNOME;
+  }
+
+  const x = rand(10, game.clientWidth-68), y = -70;
+  const base = L.baseSpeed, vy = base + rand(-40,40);
+  const rotSpd = (Math.random()>.5?1:-1)*rand(.2,.6);
+  node.style.transform = `translate(${x}px, ${y}px)`;
+  game.appendChild(node);
+  items.push({type, x, y, vy, rot:0, rotSpd, node});
+}
+
+function catchItem(it){
+  it.node.remove();
+  const cx = it.x+29, cy = it.y+29;
+  switch(it.type){
+    case 'mirabelle':
+      caught++; progressEl.textContent = caught;
+      score += 1*multiplier; scoreEl.textContent = score;
+      floatLabel(cx, cy, `+${1*multiplier}`, true); burst(cx, cy);
+      if(caught >= LEVELS[levelIndex].target){ finish(true); }
+      break;
+    case 'rotten':
+      score = Math.max(0, score-3); scoreEl.textContent = score;
+      floatLabel(cx, cy, '−3', false);
+      break;
+    case 'gnome':
+      score += 5*multiplier; scoreEl.textContent = score;
+      floatLabel(cx, cy, `+${5*multiplier} 🍄`, true); burst(cx, cy, ['#ef476f','#ffd166','#06d6a0','#118ab2']);
+      break;
+    case 'jar':
+      multiplier = 2; floatLabel(cx, cy, 'x2 🍯', true);
+      clearTimeout(multTimeout);
+      multTimeout = setTimeout(()=> multiplier=1, 5000);
+      break;
+  }
+}
+
+/* ========= Contrôles panier ========= */
+ /* ========= Contrôles panier ========= */
+  function clamp(v,min,max){ return v<min?min:(v>max?max:v); }
+  function setBasket(x){
+    basketX = clamp(x-55, 0, game.clientWidth-110);
+    basket.style.left = (basketX+55) + 'px';
+  }
+  document.addEventListener('mousemove', e=> setBasket(e.clientX));
+  document.addEventListener('touchmove', e=> { const t=e.touches[0]; setBasket(t.clientX); }, {passive:true});
+
+/* ========= Démarrage ========= */
+intro.style.display='grid';
+</script>
+
+<!-- Script ralenti vidéo (robuste) -->
+<script>
+  (function() {
+    const video = document.getElementById('bgVideo');
+    if (!video) return;
+    const RATE = 0.5; // ajuste si besoin (0.25 très lent, 1 normal)
+
+    function applyRate() {
+      video.defaultPlaybackRate = RATE;
+      video.playbackRate = RATE;
     }
-    function start(){
-      if(running) return; running=true; score=0; timeLeft=15;
-      scoreEl.textContent='0'; timeEl.textContent=timeLeft;
-      statusEl.textContent='Allez ! Récoltez 10 mirabelles →';
-      [...pg.querySelectorAll('.fruit')].forEach(el => el.remove());
-      const spawner = setInterval(()=>{ if(!running) return clearInterval(spawner); spawnFruit(); }, 380);
-      timer = setInterval(()=>{
-        timeLeft--; timeEl.textContent=timeLeft;
-        if(timeLeft<=0){ lose(); }
-      },1000);
-    }
-    function win(){
-      running=false; clearInterval(timer);
-      statusEl.innerHTML = 'Bravo ! Vous avez libéré un <strong>p’tit cadeau</strong> :<br>💌 Mot secret : <strong>MARABELLE</strong> — chuchotez‑le au stand pour une surprise.';
-      rain();
-    }
-    function lose(){
-      running=false; clearInterval(timer);
-      statusEl.innerHTML = 'Pas grave ! Encore une tartine ? 😂<br><small>Astuce : gardez le doigt prêt et visez le milieu.</small>';
-    }
-    function burst(x,y){
-      const ctx = confetti.getContext('2d');
-      for(let i=0;i<12;i++) particles.push({x, y, vx:rand(-2,2), vy:rand(-3,-1), a:rand(0,Math.PI*2), life:rand(18,28)});
-      if(!anim) anim = requestAnimationFrame(draw);
-    }
-    let particles=[], anim=null;
-    function sizeCanvas(){ confetti.width = pg.clientWidth; confetti.height = pg.clientHeight; }
-    function draw(){
-      const ctx = confetti.getContext('2d');
-      ctx.clearRect(0,0,confetti.width, confetti.height);
-      particles.forEach(p=>{
-        p.x+=p.vx; p.y+=p.vy; p.vy+=0.08; p.life-=1; p.a+=0.15;
-        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.a);
-        ctx.fillStyle = ['#ffb703','#fb8500','#8ecae6','#3a7a3a'][p.x%4|0];
-        ctx.fillRect(-3,-3,6,6); ctx.restore();
-      });
-      particles = particles.filter(p=>p.life>0 && p.y < confetti.height+8);
-      if(particles.length) anim = requestAnimationFrame(draw); else { cancelAnimationFrame(anim); anim=null; }
-    }
-    function rain(){
-      for(let i=0;i<80;i++) particles.push({x:rand(0,confetti.width), y:rand(-60,-10), vx:rand(-.5,.5), vy:rand(1,3), a:rand(0,Math.PI*2), life:rand(40,70)});
-      if(!anim) anim = requestAnimationFrame(draw);
-    }
-    startBtn.addEventListener('click', start);
-    howBtn.addEventListener('click', ()=> dlgHow.showModal());
-    credits.addEventListener('click', ()=> dlgAbout.showModal());
-    addEventListener('resize', sizeCanvas);
-    const ro = new ResizeObserver(sizeCanvas); ro.observe(pg);
-    sizeCanvas();
-  </script>
+    video.addEventListener('loadedmetadata', applyRate, { once: true });
+    video.addEventListener('canplay', applyRate);
+    video.addEventListener('play', applyRate);
+    video.addEventListener('ratechange', () => { if (video.playbackRate !== RATE) applyRate(); });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) { applyRate(); video.play().catch(()=>{}); }
+    });
+    applyRate();
+  })();
+</script>
 </body>
 </html>
