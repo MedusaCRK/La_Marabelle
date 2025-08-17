@@ -9,6 +9,7 @@
 <style>
   :root{ --ink:#2b1e17; --card:#ffffffea; --shadow:0 12px 30px rgba(0,0,0,.12);
          --accent:#ffb703; --accent2:#fb8500; --mint:#8ecae6;
+         /* ADAPT: unités viewport fiables sur mobile */
          --vh: 1vh; --vw: 1vw;
   }
   *{box-sizing:border-box}
@@ -25,6 +26,7 @@
   #bgVideo{ position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; background:#fff9f4; }
   .videoOverlay{ position: fixed; inset:0; z-index:-1; background: radial-gradient(100% 60% at 50% 20%, rgba(255,255,255,.15), rgba(0,0,0,.20)); pointer-events:none; }
 
+  /* ADAPT: hauteur fiable basée sur --vh */
   #game {position:relative; width:100vw; height: calc(var(--vh, 1vh) * 100); overflow:hidden;}
 
   .hud{
@@ -42,6 +44,7 @@
   .hud.hud--collapsed .lbl{ display:none; }
   .hud.hud--collapsed .chip{ padding:6px 10px; font-weight:800; }
 
+  /* ADAPT: tailles dynamiques (JS ajuste width/height) */
   #basket{ position:absolute; bottom:8vh; left:50%; transform:translateX(-50%); width:120px; height:140px;
     background: url('Images/SVG/Gnome_Perso.svg') center bottom / contain no-repeat; border:none; box-shadow:none; transition: transform 80ms linear; }
   #basket.flipX{ transform: translateX(-50%) scaleX(-1); }
@@ -74,7 +77,7 @@
   .avatar-grid{ display:grid; grid-template-columns:repeat(4, minmax(64px,1fr)); gap:10px; margin:10px 0 4px; }
   .avatar{ border:2px solid #e9d9b7; border-radius:14px; padding:6px; cursor:pointer; background:#fff; box-shadow:var(--shadow); position:relative; display:grid; place-items:center; }
   .avatar.selected{ outline:3px solid var(--accent); border-color:var(--accent2); }
-  .avatar img{ width:80%; height:80%; object-fit:contain; display:block; }   /* <- fixe l’affichage mobile */
+  .avatar img{ width:72px; height:72px; object-fit:contain; display:block; }
   .name-row{ display:flex; gap:10px; align-items:center; margin:8px 0 4px; }
   .name-row input{ flex:1; padding:10px 12px; border-radius:10px; border:1px solid #e9d9b7; font-weight:700; }
   .mini-board{ background:#fff; border:1px solid #f0e0c8; border-radius:12px; padding:10px; box-shadow:var(--shadow); margin-top:12px; text-align:left; }
@@ -108,8 +111,9 @@
 <div id="game">
   <div class="hud hud--collapsed" id="hud">
     <button class="hud-toggle" id="hudToggle" aria-label="Afficher/masquer les libellés">☰</button>
-    <div class="chip"><span class="lbl">Objectif</span><span class="val"><span id="progress">0</span>/<span id="target">10</span></span></div>
+    <!-- Objectif supprimé -->
     <div class="chip"><span class="lbl">Score</span><span class="val" id="score">0</span></div>
+    <div class="chip"><span class="lbl">Temps</span><span class="val"><span id="time">20</span>s</span></div>
     <div class="spacer"></div>
   </div>
 
@@ -125,15 +129,15 @@
 
   <div id="intro" class="overlay">
     <div class="panel">
-      <h2>La Marabelle — Récolte du Gnome</h2>
+      <h2>La récolte du Gnome</h2>
       <p>
         Attrape les fruits 
-        <span style="display:inline-block;width:32px;height:32px;vertical-align:middle"><img src="Images/SVG/Pomme.svg" alt="fruit" style="width:100%;height:100%"></span> !
+        <span style="display:inline-block;width:32px;height:32px;vertical-align:middle"><img src="Images/SVG/Pomme.svg" alt="fruit" style="width:80%;height:80%"></span> !
         <br>Évite le fast-food 
-        <span style="display:inline-block;width:32px;height:32px;vertical-align:middle"><img src="Images/SVG/Burger.svg" alt="junk" style="width:100%;height:100%"></span>,
+        <span style="display:inline-block;width:32px;height:32px;vertical-align:middle"><img src="Images/SVG/Burger.svg" alt="junk" style="width:80%;height:80%"></span>(-5)
         vise le gnome 
-        <span style="display:inline-block;width:32px;height:32px;vertical-align:middle"><img src="Images/SVG/Gnome.png" alt="gnome bonus" style="width:100%;height:100%"></span> (+5) et le pot
-        <span style="display:inline-block;width:32px;height:32px;vertical-align:middle"><img src="Images/SVG/JamJar.svg" alt="pot confiture" style="width:100%;height:100%"></span> (x2 pendant 5s).
+        <span style="display:inline-block;width:32px;height:32px;vertical-align:middle"><img src="Images/SVG/Gnome.png" alt="gnome bonus" style="width:80%;height:80%"></span> (+5) et le pot
+        <span style="display:inline-block;width:32px;height:32px;vertical-align:middle"><img src="Images/SVG/JamJar.svg" alt="pot confiture" style="width:80%;height:80%"></span> (x2 pendant 5s).
       </p>
 
       <div class="name-row">
@@ -158,8 +162,8 @@
 
   <div id="between" class="overlay" style="display:none">
     <div class="panel">
-      <h2 id="betweenTitle">Bravo !</h2>
-      <p id="betweenMsg">Niveau suivant ?</p>
+      <h2 id="betweenTitle">Fin du niveau</h2>
+      <p id="betweenMsg">Tu veux rejouer ou passer au suivant ?</p>
       <p id="recap" style="font-size:.95rem; opacity:.9; margin-top:6px"></p>
       <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap">
         <button class="btn" id="nextLevel">Niveau suivant</button>
@@ -168,19 +172,17 @@
     </div>
   </div>
 
+  <!-- L’écran gameover n’est plus utilisé, on garde le markup si besoin -->
   <div id="gameover" class="overlay" style="display:none">
     <div class="panel">
       <h2 id="overTitle">Oups…</h2>
-      <p id="overMsg">Trop de fruits ratés !</p>
+      <p id="overMsg"></p>
       <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap">
         <button class="btn" id="retry">Réessayer</button>
         <button class="btn ghost" id="quit">Quitter</button>
       </div>
     </div>
   </div>
-
-  <div class="credit">« Pour une tartine qui ne manque pas de Mara ! »</div>
-</div>
 
 <!-- Supabase CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -215,6 +217,8 @@ setFxSize();
 
 function rand(min,max){ return Math.random()*(max-min)+min; }
 function now(){ return performance.now(); }
+function pad2(n){ return n<10?'0'+n:''+n; }
+function mmss(ms){ const s=Math.max(0,Math.round(ms/1000)); const m=(s/60|0); return `${m}:${pad2(s%60)}`; }
 
 /* ========= FX visuels ========= */
 let particles = [], anim=null;
@@ -256,12 +260,10 @@ const FASTFOOD_FILES = ['Burger.svg','Frites.svg','Pizza.svg','Donut.svg','HotDo
 function fastFoodImgTag(){ const name = FASTFOOD_FILES[(Math.random()*FASTFOOD_FILES.length)|0]; const src='Images/SVG/'+encodeURIComponent(name); return `<img alt="junk" src="${src}" />`; }
 
 /* ========= UI Refs ========= */
-const progressEl = $('#progress'), targetEl = $('#target'), scoreEl = $('#score');
+const scoreEl = $('#score'), timeEl = $('#time');
 const hud = document.getElementById('hud'); const hudToggle = document.getElementById('hudToggle');
 const intro = $('#intro'), between = $('#between'), gameover = $('#gameover');
 const betweenTitle = $('#betweenTitle'), betweenMsg = $('#betweenMsg'), recapEl = $('#recap');
-const overTitle = $('#overTitle'), overMsg = $('#overMsg');
-
 const levelSplash = $('#levelSplash'), levelTitle = $('#levelTitle'), countdownEl = $('#countdown');
 
 /* ========= HUD toggle ========= */
@@ -346,18 +348,39 @@ if(sb){
     .subscribe();
 }
 
+/* UI avatar */
+function buildAvatarGrid(){
+  const grid = document.getElementById('avatarGrid'); grid.innerHTML='';
+  AVATARS.forEach(a=>{
+    const div = document.createElement('div'); div.className='avatar'; div.dataset.id=a.id; div.title=a.label;
+    div.innerHTML = `<img src="${a.src}" alt="${a.label}" loading="lazy">`;
+    div.addEventListener('click', ()=>{
+      [...grid.children].forEach(c=>c.classList.remove('selected'));
+      div.classList.add('selected'); document.getElementById('introStart').disabled = !document.getElementById('playerName').value.trim();
+    });
+    grid.appendChild(div);
+  });
+  if(grid.firstChild) grid.firstChild.classList.add('selected');
+}
+function ensureProfileUI(){
+  const nameInput = document.getElementById('playerName');
+  const playBtn = document.getElementById('introStart');
+  const cur = getCurrentUser();
+  if(cur){ nameInput.value = cur.name; playBtn.disabled = false; }
+  nameInput.addEventListener('input', ()=>{ playBtn.disabled = nameInput.value.trim()===''; });
+  buildAvatarGrid(); renderTop3();
+}
+
 /* ========= État du jeu & ADAPT scale ========= */
-let items=[], nextSpawnAt=0, raf=null, tPrev=0, levelIndex=0;
-let caught=0, score=0, multiplier=1, multTimeout=null;
-let misses=0, missCap=0, streak=0, combo=1, maxCombo=1, lastWaveT=0;
+let items=[], nextSpawnAt=0, raf=null, tPrev=0, timerId=null, levelIndex=0;
+let caught=0, score=0, timeLeft=20, multiplier=1, multTimeout=null;
+let misses=0, streak=0, combo=1, maxCombo=1, lastWaveT=0;
 let running=false, levelStartMs=0;
 
-/* anti-cumul sur REJOUER */
-let scoreBeforeLevel = 0;   // snapshot au premier lancement d’un niveau
-
-/* ADAPT: dimensions de référence 390×844 */
+/* ADAPT: dimensions basées sur un écran de référence 390×844 */
 const BASE_W = 390, BASE_H = 844;
-let SCALE = 1, ITEM_SIZE = 58;
+let SCALE = 1;
+let ITEM_SIZE = 58;
 let basketW = 120, basketH = 140;
 let basketX = 0, lastX = 0;
 
@@ -383,11 +406,11 @@ function recalcScale(applyToExisting=false){
 }
 recalcScale(false);
 
-/* Niveaux */
+/* Niveaux (durée seulement, plus d'objectif) */
 const LEVELS = [
-  { target:10, baseSpeed:140, gravity:280, spawnMin:620, spawnMax:820, waveEvery:6000, waveBoost:-220, maxSimultaneous:4, missLimit:5, weights:{ mirabelle:0.78, rotten:0.08, gnome:0.06, jar:0.08 }, comboUp:5, comboCap:4, jarDuration:5000 },
-  { target:15, baseSpeed:190, gravity:320, spawnMin:520, spawnMax:700, waveEvery:5500, waveBoost:-240, maxSimultaneous:6, missLimit:5, weights:{ mirabelle:0.72, rotten:0.12, gnome:0.06, jar:0.10 }, comboUp:4, comboCap:5, jarDuration:5000 },
-  { target:20, baseSpeed:250, gravity:360, spawnMin:420, spawnMax:620, waveEvery:5000, waveBoost:-260, maxSimultaneous:7, missLimit:4, weights:{ mirabelle:0.66, rotten:0.16, gnome:0.06, jar:0.12 }, comboUp:3, comboCap:6, jarDuration:6000 }
+  { duration:20, baseSpeed:140, gravity:280, spawnMin:620, spawnMax:820, waveEvery:6000, waveBoost:-220, maxSimultaneous:4, weights:{ mirabelle:0.78, rotten:0.08, gnome:0.06, jar:0.08 }, comboUp:5, comboCap:4, jarDuration:5000 },
+  { duration:20, baseSpeed:190, gravity:320, spawnMin:520, spawnMax:700, waveEvery:5500, waveBoost:-240, maxSimultaneous:6, weights:{ mirabelle:0.72, rotten:0.12, gnome:0.06, jar:0.10 }, comboUp:4, comboCap:5, jarDuration:5000 },
+  { duration:20, baseSpeed:250, gravity:360, spawnMin:420, spawnMax:620, waveEvery:5000, waveBoost:-260, maxSimultaneous:7, weights:{ mirabelle:0.66, rotten:0.16, gnome:0.06, jar:0.12 }, comboUp:3, comboCap:6, jarDuration:6000 }
 ];
 
 /* ========= Démarrage / boutons ========= */
@@ -404,27 +427,16 @@ document.getElementById('introStart').onclick = async () => {
 
   renderTop3();
 
-  score = 0; scoreEl.textContent = '0';
-  startLevel(0);               // première partie → snapshot créé dans startLevel
+  startLevel(0, /*freshRun=*/true);
 };
 
-document.getElementById('nextLevel').onclick = () => { initAudio(); resumeAudio(); startLevel(levelIndex+1); };
-
-// IMPORTANT : rejouer = restaurer le score de départ du niveau
-document.getElementById('replayLevel').onclick = () => {
-  initAudio(); resumeAudio();
-  score = scoreBeforeLevel; scoreEl.textContent = score;
-  startLevel(levelIndex, true);  // true = mode replay (ne pas toucher au snapshot)
-};
-document.getElementById('retry').onclick = () => {
-  initAudio(); resumeAudio();
-  score = scoreBeforeLevel; scoreEl.textContent = score;
-  startLevel(levelIndex, true);
-};
-document.getElementById('quit').onclick = () => { gameover.style.display='none'; intro.style.display='grid'; ensureProfileUI(); };
+document.getElementById('nextLevel').onclick = () => { initAudio(); resumeAudio(); startLevel(levelIndex+1, true); };
+document.getElementById('replayLevel').onclick=() => { initAudio(); resumeAudio(); startLevel(levelIndex, true); };
+document.getElementById('retry').onclick     = () => { initAudio(); resumeAudio(); startLevel(levelIndex, true); };
+document.getElementById('quit').onclick      = () => { gameover.style.display='none'; intro.style.display='grid'; ensureProfileUI(); };
 
 /* ========= Lancement d’un niveau ========= */
-function startLevel(i, isReplay = false){
+function startLevel(i, freshRun=false){
   if(i >= LEVELS.length){
     between.style.display='none'; intro.style.display='grid'; betweenTitle.textContent='Champion·ne de la confiture !';
     ensureProfileUI(); return;
@@ -432,24 +444,28 @@ function startLevel(i, isReplay = false){
   levelIndex=i;
   const L = LEVELS[i];
 
-  // snapshot score de départ du niveau (uniquement au 1er lancement)
-  if(!isReplay){ scoreBeforeLevel = score; }
+  // reset complet à chaque (re)lancement de niveau pour éviter le cumul
+  items.forEach(el=>el.node.remove()); items=[];
+  nextSpawnAt=0; lastWaveT=0; caught=0; misses=0; streak=0; combo=1; maxCombo=1; multiplier=1; clearTimeout(multTimeout);
+  timeLeft=L.duration;
+  score=0; scoreEl.textContent=score; // <-- score remis à zéro à chaque lancement de niveau
 
   intro.style.display='none'; between.style.display='none'; gameover.style.display='none';
-  items.forEach(el=>el.node.remove()); items=[];
-  nextSpawnAt=0; lastWaveT=0; caught=0; multiplier=1; clearTimeout(multTimeout);
-  misses=0; missCap=L.missLimit; streak=0; combo=1; maxCombo=1;
 
+  // ADAPT: recalcul à l’entrée du niveau (au cas où on a tourné l’écran)
   setViewportVars(); setFxSize(); recalcScale(false);
   basketX = game.clientWidth/2 - basketW/2; lastX = basketX;
   basket.style.left=(basketX + basketW/2)+'px';
 
-  scoreEl.textContent=score; progressEl.textContent=caught; targetEl.textContent=L.target;
+  timeEl.textContent=timeLeft;
 
   showCountdown(i+1, ()=> beginGameplay());
 }
 function beginGameplay(){
+  const L = LEVELS[levelIndex];
   if (window.matchMedia('(min-width: 769px)').matches){ setHudCollapsed(false); } else { setHudCollapsed(true); }
+  clearInterval(timerId);
+  timerId = setInterval(()=>{ if(!running) return; timeLeft--; timeEl.textContent = timeLeft; if(timeLeft<=0){ running=false; finish(); } },1000);
   running=true; cancelAnimationFrame(raf); tPrev=now(); levelStartMs = performance.now(); raf=requestAnimationFrame(tick);
 }
 function showCountdown(levelNum, onDone){
@@ -463,40 +479,41 @@ function showCountdown(levelNum, onDone){
 }
 
 /* ========= Fin de niveau : envoi Supabase + récap ========= */
-async function finish(win){
+async function finish(){
   running=false;
-  cancelAnimationFrame(raf); clearTimeout(multTimeout);
+  clearInterval(timerId); cancelAnimationFrame(raf); clearTimeout(multTimeout);
   items.forEach(el=>el.node.remove()); items=[]; nextSpawnAt=Number.POSITIVE_INFINITY;
 
-  const L = LEVELS[levelIndex];
+  const elapsedMs = performance.now() - levelStartMs;
+  const used = Math.round(elapsedMs/1000);
+  const usedStr = mmss(used*1000);
 
   const cur = getCurrentUser();
   if(cur){
-    const lastGame = { date: new Date().toISOString(), level: levelIndex+1, score, caught, target:L.target, misses, bestCombo:maxCombo };
+    const lastGame = { date: new Date().toISOString(), level: levelIndex+1, score, caught, timeUsedSec: used, misses, bestCombo:maxCombo };
 
+    // meilleur score conservé (ne descend jamais)
     const cloudBest = await sbGetBestScoreByName(cur.name);
     const bestScore = Math.max(cloudBest||0, cur.bestScore||0, score);
 
     setCurrentUser({ ...cur, bestScore, lastGame });
+
     await sbUpsertPlayer({ name: cur.name, avatar: cur.avatar, bestScore, lastGame });
     sbFetchTop3();
   }
 
-  if(win){
-    betweenTitle.textContent = (levelIndex < LEVELS.length-1) ? 'Bravo !' : 'Grand·e Maître des Fruits 👑';
-    betweenMsg.textContent = (levelIndex < LEVELS.length-1) ? `Cap sur le niveau ${levelIndex+2} ?` : `Score final : ${score}`;
-    recapEl.innerHTML =
-      `Récoltés : <strong>${caught}</strong> / ${L.target}
-       &nbsp;•&nbsp; Ratés : <strong>${misses}</strong>
-       &nbsp;•&nbsp; Meilleur combo : <strong>x${maxCombo}</strong>
-       &nbsp;•&nbsp; Score total : <strong>${score}</strong>`;
-    between.style.display='grid';
-    if(levelIndex >= LEVELS.length-1){ document.getElementById('nextLevel').style.display='none'; setTimeout(()=>document.getElementById('nextLevel').style.display='',10); }
-  }else{
-    overTitle.textContent='Oups…';
-    overMsg.textContent=`Trop de fruits ratés — Récolte : ${caught}/${L.target} — Score : ${score}`;
-    gameover.style.display='grid';
-  }
+  // Affiche l’écran "between" (fin de niveau temporelle)
+  const isLast = (levelIndex >= LEVELS.length-1);
+  betweenTitle.textContent = isLast ? 'Fin — Tous les niveaux' : 'Fin du niveau';
+  betweenMsg.textContent   = isLast ? 'Tu veux rejouer un niveau ?' : `Cap sur le niveau ${levelIndex+2} ?`;
+  recapEl.innerHTML =
+    `Fruits attrapés : <strong>${caught}</strong><br>
+     Ratés : <strong>${misses}</strong> &nbsp;•&nbsp; Meilleur combo : <strong>x${maxCombo}</strong><br>
+     Temps écoulé : <strong>${usedStr}</strong> &nbsp;•&nbsp; Score total : <strong>${score}</strong>`;
+  between.style.display='grid';
+
+  // Cache "Niveau suivant" si dernier
+  document.getElementById('nextLevel').style.display = isLast ? 'none' : '';
 }
 
 /* ========= Boucle ========= */
@@ -525,7 +542,7 @@ function tick(ts){
 
     if (it.y > H){
       it.node.remove();
-      if (it.type === 'mirabelle'){ misses++; if(misses >= L.missLimit){ finish(false); return; } }
+      if (it.type === 'mirabelle'){ misses++; } // n’arrête plus la partie
       items.splice(k,1);
       continue;
     }
@@ -568,15 +585,21 @@ function catchItem(it){
   const cx = it.x + s/2, cy = it.y + s/2;
 
   if (it.type==='mirabelle'){
-    caught++; progressEl.textContent=caught;
+    caught++;
     streak++; if (streak % L.comboUp === 0 && combo < L.comboCap){ combo++; maxCombo=Math.max(maxCombo,combo); floatLabel(cx, cy-10, 'COMBO ↑', true); }
     const pts = 1 * (multiplier||1) * combo; score += pts; scoreEl.textContent=score; floatLabel(cx,cy,`+${pts}`,true); burst(cx,cy); sfx('ok');
-    if (caught >= L.target){ finish(true); }
     return;
   }
-  if (it.type==='rotten'){ score=Math.max(0,score-3); scoreEl.textContent=score; streak=0; combo=1; floatLabel(cx,cy,'−3 🍔',false); sfx('bad'); return; }
-  if (it.type==='gnome'){ const pts=5*(multiplier||1)*combo; score+=pts; scoreEl.textContent=score; floatLabel(cx,cy,`+${pts} 🍄`,true); burst(cx,cy,['#ef476f','#ffd166','#06d6a0','#118ab2']); sfx('bonus'); return; }
-  if (it.type==='jar'){ multiplier=2; floatLabel(cx,cy,'x2 🍯',true); sfx('power'); clearTimeout(multTimeout); multTimeout=setTimeout(()=>{ multiplier=1; }, L.jarDuration); }
+  if (it.type==='rotten'){
+    score=Math.max(0,score-5); // malus –5
+    scoreEl.textContent=score; streak=0; combo=1; floatLabel(cx,cy,'−5 🍔',false); sfx('bad'); return;
+  }
+  if (it.type==='gnome'){
+    const pts=5*(multiplier||1)*combo; score+=pts; scoreEl.textContent=score; floatLabel(cx,cy,`+${pts} 🍄`,true); burst(cx,cy,['#ef476f','#ffd166','#06d6a0','#118ab2']); sfx('bonus'); return;
+  }
+  if (it.type==='jar'){
+    multiplier=2; floatLabel(cx,cy,'x2 🍯',true); sfx('power'); clearTimeout(multTimeout); multTimeout=setTimeout(()=>{ multiplier=1; }, L.jarDuration);
+  }
 }
 
 /* ========= Contrôles ========= */
@@ -589,28 +612,7 @@ function setBasket(x){
 document.addEventListener('mousemove', e=> setBasket(e.clientX), {passive:true});
 document.addEventListener('touchmove', e=> { const t=e.touches[0]; setBasket(t.clientX); }, {passive:true});
 
-/* ========= Intro ========= */
-function buildAvatarGrid(){
-  const grid = document.getElementById('avatarGrid'); grid.innerHTML='';
-  AVATARS.forEach(a=>{
-    const div = document.createElement('div'); div.className='avatar'; div.dataset.id=a.id; div.title=a.label;
-    div.innerHTML = `<img src="${a.src}" alt="${a.label}" loading="lazy">`;
-    div.addEventListener('click', ()=>{
-      [...grid.children].forEach(c=>c.classList.remove('selected'));
-      div.classList.add('selected'); document.getElementById('introStart').disabled = !document.getElementById('playerName').value.trim();
-    });
-    grid.appendChild(div);
-  });
-  if(grid.firstChild) grid.firstChild.classList.add('selected');
-}
-function ensureProfileUI(){
-  const nameInput = document.getElementById('playerName');
-  const playBtn = document.getElementById('introStart');
-  const cur = getCurrentUser();
-  if(cur){ nameInput.value = cur.name; playBtn.disabled = false; }
-  nameInput.addEventListener('input', ()=>{ playBtn.disabled = nameInput.value.trim()===''; });
-  buildAvatarGrid(); renderTop3();
-}
+/* ========= Démarrage ========= */
 intro.style.display='grid';
 ensureProfileUI();
 </script>
