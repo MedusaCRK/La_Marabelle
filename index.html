@@ -60,6 +60,9 @@
   .panel{ background:var(--card); border:1px solid #f0e0c8; border-radius:18px; box-shadow:var(--shadow); padding:20px; max-width:520px; }
   .panel h2{ margin:6px 0 8px } .panel p{ margin:0 0 12px }
 
+  <style>
+  </style>
+
   .credit{ position:absolute; bottom:8px; right:12px; font-size:.85rem; opacity:.8; text-shadow:0 1px 2px rgba(255,255,255,.6) }
 </style>
 </head>
@@ -87,11 +90,29 @@
   <div id="basket" aria-label="Gnome collecteur"></div>
   <canvas id="fx"></canvas>
 
-  <!-- Overlays -->
   <div id="intro" class="overlay">
     <div class="panel">
       <h2>La Marabelle — Récolte du Gnome</h2>
-      <p>Attrape les fruits 🍑 ! Évite le fast-food 🍔, vise le gnome 🍄 (+5) et le pot 🍯 (x2 pendant 5s).</p>
+      <p>
+        Attrape les fruits 
+        <span style="display:inline-block;width:32px;height:32px;vertical-align:middle">
+          <img src="Images/SVG/Pomme.svg" alt="fruit" style="width:100%;height:100%">
+        </span> !
+        <br>
+        Évite le fast-food 
+        <span style="display:inline-block;width:32px;height:32px;vertical-align:middle">
+          <img src="Images/SVG/Burger.svg" alt="junk" style="width:100%;height:100%">
+        </span>,
+        vise le gnome bonus 
+        <span style="display:inline-block;width:32px;height:32px;vertical-align:middle">
+          <img src="Images/SVG/Gnome.png" alt="gnome bonus" style="width:100%;height:100%">
+        </span>
+        (+5) et le pot
+        <span style="display:inline-block;width:32px;height:32px;vertical-align:middle">
+          <img src="Images/SVG/JamJar.svg" alt="pot confiture" style="width:100%;height:100%">
+        </span>
+        (x2 pendant 5s).
+      </p>
       <p>3 niveaux : de doux à corsé. Prêt·e ?</p>
       <button class="btn" id="introStart">Jouer</button>
     </div>
@@ -129,7 +150,7 @@ const SVG_ROTTEN = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 58 58">
   <path d="M18 36 q10 -6 20 0" stroke="#2b1e17" stroke-width="4" fill="none" stroke-linecap="round"/>
   <circle cx="21" cy="27" r="4" fill="#2b1e17"/><circle cx="37" cy="27" r="4" fill="#2b1e17"/>
 </svg>`;
-const GNOME_TAG = `<img alt="gnome bonus" src="Images/SVG/Gnome_Perso.svg" />`;
+const GNOME_TAG = `<img alt="gnome bonus" src="Images/SVG/Gnome.png" />`;
 const JAMJAR_TAG = `<img alt="pot de confiture" src="Images/SVG/JamJar.svg" />`;
 
 /* ========= Utilitaires ========= */
@@ -141,7 +162,7 @@ addEventListener('resize', setFxSize); setFxSize();
 function rand(min,max){ return Math.random()*(max-min)+min; }
 function now(){ return performance.now(); }
 
-/* ========= FX ========= */
+/* ========= FX visuels ========= */
 let particles = [], anim=null;
 function burst(x,y,colors=['#ffb703','#fb8500','#8ecae6','#3a7a3a']){
   for(let i=0;i<18;i++){
@@ -167,6 +188,98 @@ function floatLabel(x,y,text,good=true){
   el.style.left=x+'px'; el.style.top=y+'px';
   game.appendChild(el); setTimeout(()=> el.remove(), 820);
 }
+
+/* ========= Audio SFX (WebAudio, avec boost & limiteur) ========= */
+let AC=null, master=null, comp=null;
+// <<< AJUSTE ICI le volume global (0.0 à ~2.0) :
+const MASTER_VOLUME = 0.55;
+
+function initAudio(){
+  if(AC) return;
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if(!Ctx) return;
+  AC = new Ctx();
+
+  // Chaîne: sources -> master (gain) -> compresseur -> destination
+  master = AC.createGain();
+  comp = AC.createDynamicsCompressor();
+  comp.threshold.value = -12; // limiteur doux
+  comp.knee.value = 20;
+  comp.ratio.value = 6;
+  comp.attack.value = 0.003;
+  comp.release.value = 0.25;
+
+  // Volume global + override via ?vol=...
+  let vol = MASTER_VOLUME;
+  const qp = new URLSearchParams(location.search);
+  const v = parseFloat(qp.get('vol'));
+  if(!Number.isNaN(v)) vol = Math.max(0, Math.min(2, v));
+  master.gain.value = vol;
+
+  master.connect(comp);
+  comp.connect(AC.destination);
+}
+function resumeAudio(){ if(AC && AC.state==='suspended') AC.resume(); }
+function setMasterVolume(v){
+  if(!master) return;
+  master.gain.value = Math.max(0, Math.min(2, v));
+}
+function vibrate(ms){ if(navigator.vibrate) navigator.vibrate(ms); }
+
+function tone({freq=440, freq2=null, dur=0.12, type='sine', attack=0.005, release=0.08, vol=0.8, when=0}){
+  if(!AC) return;
+  const t = AC.currentTime + when;
+  const o = AC.createOscillator();
+  const g = AC.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, t);
+  if(freq2){ o.frequency.exponentialRampToValueAtTime(freq2, t+dur*0.9); }
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t+attack);
+  g.gain.exponentialRampToValueAtTime(0.0001, t+dur+release);
+  o.connect(g); g.connect(master);
+  o.start(t); o.stop(t+dur+release+0.02);
+}
+function noise({dur=0.05, vol=0.5, when=0}){
+  if(!AC) return;
+  const t = AC.currentTime + when;
+  const buffer = AC.createBuffer(1, AC.sampleRate*dur, AC.sampleRate);
+  const data = buffer.getChannelData(0);
+  for(let i=0;i<data.length;i++) data[i] = (Math.random()*2-1)*0.5;
+  const src = AC.createBufferSource(); src.buffer = buffer;
+  const g = AC.createGain(); g.gain.value = vol;
+  src.connect(g); g.connect(master);
+  src.start(t);
+}
+function sfx(kind){
+  if(!AC) return;
+  switch(kind){
+    case 'ok': // fruit
+      tone({freq:660,freq2:880,dur:0.10,type:'triangle',vol:0.9});
+      break;
+    case 'bad': // fast-food
+      tone({freq:220,freq2:120,dur:0.22,type:'sawtooth',vol:1.0});
+      break;
+    case 'bonus': // gnome (3 notes rapides)
+      tone({freq:784,dur:0.07,type:'square',vol:0.8});
+      tone({freq:988,dur:0.07,type:'square',vol:0.75, when:0.08});
+      tone({freq:1175,dur:0.09,type:'square',vol:0.75, when:0.16});
+      break;
+    case 'power': // pot x2 (glissando montant)
+      tone({freq:650,freq2:980,dur:0.18,type:'sine',vol:0.9});
+      tone({freq:980,freq2:1300,dur:0.16,type:'sine',vol:0.8, when:0.12});
+      break;
+    case 'miss': // raté
+      tone({freq:1500,dur:0.04,type:'square',vol:0.5});
+      noise({dur:0.03,vol:0.25,when:0.02});
+      break;
+  }
+}
+
+/* Débloquer l'audio sur interaction utilisateur */
+['click','touchstart'].forEach(ev=>{
+  document.addEventListener(ev, ()=>{ if(!AC){ initAudio(); } else { resumeAudio(); } }, {once:true, passive:true});
+});
 
 /* ========= Fruits/Assets ========= */
 const FRUIT_FILES = [
@@ -196,11 +309,11 @@ const intro = $('#intro'), between = $('#between'), gameover = $('#gameover');
 const betweenTitle = $('#betweenTitle'), betweenMsg = $('#betweenMsg');
 const overTitle = $('#overTitle'), overMsg = $('#overMsg');
 const btnStart = $('#btnStart');
-$('#introStart').onclick = () => startLevel(0);
-btnStart.onclick = () => startLevel(levelIndex);
-$('#nextLevel').onclick = ()=> startLevel(levelIndex+1);
-$('#replayLevel').onclick = ()=> startLevel(levelIndex);
-$('#retry').onclick = ()=> startLevel(levelIndex);
+$('#introStart').onclick = () => { initAudio(); resumeAudio(); startLevel(0); };
+btnStart.onclick = () => { initAudio(); resumeAudio(); startLevel(levelIndex); };
+$('#nextLevel').onclick = ()=> { initAudio(); resumeAudio(); startLevel(levelIndex+1); };
+$('#replayLevel').onclick = ()=> { initAudio(); resumeAudio(); startLevel(levelIndex); };
+$('#retry').onclick = ()=> { initAudio(); resumeAudio(); startLevel(levelIndex); };
 $('#quit').onclick = ()=> { gameover.style.display='none'; intro.style.display='grid'; };
 
 /* ========= État ========= */
@@ -209,7 +322,7 @@ let caught = 0, score = 0, timeLeft = 20, multiplier = 1, multTimeout = null;
 let misses = 0, missCap = 0;       // fruits manqués (comptés seulement pour les fruits)
 let streak = 0, combo = 1;         // série d’attrapages
 let lastWaveT = 0;                 // chrono des vagues
-let running = false;               // <<< FLAG global pour figer entre niveaux
+let running = false;               // fige entre niveaux
 
 /* Taille du gnome (collisions) */
 const basketW = 120, basketH = 140;
@@ -219,36 +332,9 @@ let lastX = basketX;
 
 /* ========= Niveaux équilibrés façon catcher mobile ========= */
 const LEVELS = [
-  // Niveau 1 : découverte
-  {
-    target: 10, duration: 20,
-    baseSpeed: 140, gravity: 280,
-    spawnMin: 620, spawnMax: 820,
-    waveEvery: 6000, waveBoost: -220,
-    maxSimultaneous: 4, missLimit: 5,
-    weights: { mirabelle: 0.78, rotten: 0.08, gnome: 0.06, jar: 0.08 },
-    comboUp: 5, comboCap: 4, jarDuration: 5000
-  },
-  // Niveau 2 : rythme
-  {
-    target: 15, duration: 20,
-    baseSpeed: 190, gravity: 320,
-    spawnMin: 520, spawnMax: 700,
-    waveEvery: 5500, waveBoost: -240,
-    maxSimultaneous: 6, missLimit: 5,
-    weights: { mirabelle: 0.72, rotten: 0.12, gnome: 0.06, jar: 0.10 },
-    comboUp: 4, comboCap: 5, jarDuration: 5000
-  },
-  // Niveau 3 : challenge
-  {
-    target: 20, duration: 20,
-    baseSpeed: 250, gravity: 360,
-    spawnMin: 420, spawnMax: 620,
-    waveEvery: 5000, waveBoost: -260,
-    maxSimultaneous: 7, missLimit: 4,
-    weights: { mirabelle: 0.66, rotten: 0.16, gnome: 0.06, jar: 0.12 },
-    comboUp: 3, comboCap: 6, jarDuration: 6000
-  }
+  { target:10, duration:20, baseSpeed:140, gravity:280, spawnMin:620, spawnMax:820, waveEvery:6000, waveBoost:-220, maxSimultaneous:4, missLimit:5, weights:{ mirabelle:0.78, rotten:0.08, gnome:0.06, jar:0.08 }, comboUp:5, comboCap:4, jarDuration:5000 },
+  { target:15, duration:20, baseSpeed:190, gravity:320, spawnMin:520, spawnMax:700, waveEvery:5500, waveBoost:-240, maxSimultaneous:6, missLimit:5, weights:{ mirabelle:0.72, rotten:0.12, gnome:0.06, jar:0.10 }, comboUp:4, comboCap:5, jarDuration:5000 },
+  { target:20, duration:20, baseSpeed:250, gravity:360, spawnMin:420, spawnMax:620, waveEvery:5000, waveBoost:-260, maxSimultaneous:7, missLimit:4, weights:{ mirabelle:0.66, rotten:0.16, gnome:0.06, jar:0.12 }, comboUp:3, comboCap:6, jarDuration:6000 }
 ];
 
 /* ========= Démarrage d'un niveau ========= */
@@ -278,25 +364,25 @@ function startLevel(i){
   // Timer
   clearInterval(timerId);
   timerId = setInterval(()=>{
-    if (!running) return;         // ne décrémente pas si le jeu est figé
+    if (!running) return;
     timeLeft--; timeEl.textContent = timeLeft;
     if (timeLeft <= 0) { running = false; finish(false); }
   }, 1000);
 
   // RAF
-  running = true;                 // <<< active le jeu
+  running = true;
   cancelAnimationFrame(raf); tPrev = now(); raf = requestAnimationFrame(tick);
 }
 
 /* ========= Fin de niveau ========= */
 function finish(win){
-  running = false;                          // <<< fige le jeu
+  running = false;
   clearInterval(timerId);
   cancelAnimationFrame(raf);
   clearTimeout(multTimeout);
   items.forEach(el=>el.node.remove());
   items = [];
-  nextSpawnAt = Number.POSITIVE_INFINITY;   // <<< bloque tout prochain spawn
+  nextSpawnAt = Number.POSITIVE_INFINITY;
 
   if(win){
     if(levelIndex < LEVELS.length-1){
@@ -324,7 +410,7 @@ function rectsOverlap(a,b){
 
 /* ========= Boucle jeu ========= */
 function tick(ts){
-  if (!running) return;             // <<< ne fait rien si figé
+  if (!running) return;
   const L = LEVELS[levelIndex];
   const dt = (ts - tPrev)/1000; tPrev = ts;
 
@@ -360,21 +446,22 @@ function tick(ts){
     }
     if (it.y > H){
       it.node.remove();
-      // Compter comme raté uniquement les fruits (mirabelles/pommes…)
+      // Raté uniquement pour les fruits
       if (it.type === 'mirabelle'){
         misses++; missEl.textContent = misses;
         streak = 0; combo = 1; comboEl.textContent = 'x1';
+        sfx('miss'); vibrate(15);
         if (misses >= missCap) { running = false; finish(false); return; }
       }
       items.splice(k,1);
     }
   }
-  if (running) raf = requestAnimationFrame(tick);  // <<< replannifie seulement si actif
+  if (running) raf = requestAnimationFrame(tick);
 }
 
 /* ========= Spawn pondéré ========= */
 function spawnOne(){
-  if (!running) return; // sécurité
+  if (!running) return;
   const L = LEVELS[levelIndex];
   const r = Math.random();
   const w = L.weights;
@@ -419,9 +506,10 @@ function catchItem(it){
     const pts = 1 * (multiplier||1) * combo;
     score += pts; scoreEl.textContent = score;
     floatLabel(cx, cy, `+${pts}`, true); burst(cx, cy);
+    sfx('ok'); vibrate(10);
 
     if (caught >= L.target){
-      running = false;     // <<< stop avant l’overlay
+      running = false;
       finish(true);
     }
     return;
@@ -432,6 +520,7 @@ function catchItem(it){
     scoreEl.textContent = score;
     streak = 0; combo = 1; comboEl.textContent = 'x1';
     floatLabel(cx, cy, '−3 🍔', false);
+    sfx('bad'); vibrate(30);
     return;
   }
 
@@ -440,6 +529,7 @@ function catchItem(it){
     score += pts; scoreEl.textContent = score;
     floatLabel(cx, cy, `+${pts} 🍄`, true);
     burst(cx, cy, ['#ef476f','#ffd166','#06d6a0','#118ab2']);
+    sfx('bonus'); vibrate(15);
     return;
   }
 
@@ -447,6 +537,7 @@ function catchItem(it){
     multiplier = 2;
     comboEl.textContent = 'x' + (combo * multiplier);
     floatLabel(cx, cy, 'x2 🍯', true);
+    sfx('power'); vibrate(12);
     clearTimeout(multTimeout);
     multTimeout = setTimeout(()=>{
       multiplier = 1;
