@@ -6,22 +6,17 @@
 <title>La Marabelle — Panier à Mirabelles (Vidéo + Niveaux)</title>
 <meta name="description" content="Attrape les fruits ! 3 niveaux, gnome, pot de confiture, fast-food malus, fond vidéo, profils et leaderboard.">
 <style>
-  :root{
-    --ink:#2b1e17; --card:#ffffffea; --shadow:0 12px 30px rgba(0,0,0,.12);
-    --accent:#ffb703; --accent2:#fb8500; --mint:#8ecae6;
-  }
+  :root{ --ink:#2b1e17; --card:#ffffffea; --shadow:0 12px 30px rgba(0,0,0,.12);
+         --accent:#ffb703; --accent2:#fb8500; --mint:#8ecae6; }
   *{box-sizing:border-box}
   html,body{height:100%}
   body{ margin:0; font-family: ui-rounded, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; color:var(--ink); overflow:hidden; }
 
-  /* Vidéo de fond */
   #bgVideo{ position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; background:#fff9f4; }
   .videoOverlay{ position: fixed; inset:0; z-index:-1; background: radial-gradient(100% 60% at 50% 20%, rgba(255,255,255,.15), rgba(0,0,0,.20)); pointer-events:none; }
 
-  /* Conteneur jeu */
   #game {position:relative; width:100vw; height:100vh; overflow:hidden;}
 
-  /* HUD compacte (Niveau/Combo/Ratés retirés) */
   .hud{ position:absolute; top:10px; left:10px; right:10px; display:flex; gap:8px; align-items:center; z-index:5; overflow-x:auto; -webkit-overflow-scrolling:touch; }
   .hud .chip{ background:var(--card); border:1px solid #f0e0c8; border-radius:999px; padding:8px 12px; box-shadow:var(--shadow); font-weight:700; white-space:nowrap; display:flex; gap:.45rem; align-items:center; }
   .hud .hud-toggle{ appearance:none; border:1px solid #f0e0c8; background:#fff; box-shadow:var(--shadow); border-radius:10px; padding:8px 10px; font-weight:800; cursor:pointer; }
@@ -33,33 +28,27 @@
   .hud.hud--collapsed .chip{ padding:6px 10px; font-weight:800; }
   .hud.hud--collapsed #btnStart{ position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:7; }
 
-  /* GNOME (panier) */
   #basket{ position:absolute; bottom:8vh; left:50%; transform:translateX(-50%); width:120px; height:140px;
     background: url('Images/SVG/Gnome_Perso.svg') center bottom / contain no-repeat; border:none; box-shadow:none; transition: transform 80ms linear; }
   #basket.flipX{ transform: translateX(-50%) scaleX(-1); }
 
-  /* Items */
   .item{ position:absolute; width:58px; height:58px; will-change:transform; }
   .item img, .item svg{ width:58px; height:58px; display:block; filter: drop-shadow(0 6px 6px rgba(0,0,0,.22)); }
 
-  /* Effets */
   .float{ position:absolute; pointer-events:none; font-weight:900; text-shadow:0 2px 0 rgba(0,0,0,.1); animation: floatUp .8s ease-out forwards; }
   @keyframes floatUp{ from{ transform:translate(-50%,0); opacity:0 } 20%{opacity:1} to{ transform:translate(-50%,-48px); opacity:0 } }
   canvas#fx{ position:absolute; inset:0; pointer-events:none; }
 
-  /* Overlays */
   .overlay{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(255,249,244,.55); backdrop-filter: blur(2px); z-index:6; padding:20px; text-align:center; }
   .panel{ background:var(--card); border:1px solid #f0e0c8; border-radius:18px; box-shadow:var(--shadow); padding:20px; max-width:640px; width:min(92vw,640px); }
   .panel h2{ margin:6px 0 8px } .panel p{ margin:0 0 12px }
 
-  /* Splash de niveau + décompte */
   .level-splash{ position:absolute; inset:0; display:grid; place-items:center; z-index:7; pointer-events:none; background:rgba(0,0,0,.18); backdrop-filter: blur(1px); }
   .level-inner{ text-align:center; color:#fff; text-shadow:0 4px 0 rgba(0,0,0,.25), 0 10px 30px rgba(0,0,0,.35); }
   .level-title{ font-family: "Impact","Anton","Bangers", system-ui, sans-serif; letter-spacing:.02em; font-size: clamp(32px, 7vw, 72px); -webkit-text-stroke:2px rgba(0,0,0,.35); }
   .countdown{ font-family: "Press Start 2P", ui-monospace, monospace; font-size: clamp(28px, 12vw, 120px); margin-top:.2em; animation: pop .25s ease; }
   @keyframes pop{ from{transform:scale(.7); opacity:.6} to{transform:scale(1); opacity:1} }
 
-  /* Sélecteur d’avatar */
   .avatar-grid{ display:grid; grid-template-columns:repeat(4, minmax(64px,1fr)); gap:10px; margin:10px 0 4px; }
   .avatar{ border:2px solid #e9d9b7; border-radius:14px; padding:6px; cursor:pointer; background:#fff; box-shadow:var(--shadow); position:relative; }
   .avatar.selected{ outline:3px solid var(--accent); border-color:var(--accent2); }
@@ -72,25 +61,21 @@
   .mini-row{ display:flex; align-items:center; gap:8px; }
   .mini-avatar{ width:22px; height:22px; border-radius:50%; display:inline-grid; place-items:center; background:#ffd166; font-weight:800; }
 
-  /* Mobile */
   @media (max-width: 480px){
     .hud .chip{ padding:6px 10px; font-size:14px; }
     .btn{ padding:10px 14px; font-size:15px; }
     .hud .hud-toggle{ padding:6px 8px; }
   }
-
   .credit{ position:absolute; bottom:8px; right:12px; font-size:.85rem; opacity:.8; text-shadow:0 1px 2px rgba(255,255,255,.6) }
 </style>
 </head>
 <body>
-<!-- Vidéo -->
 <video id="bgVideo" autoplay loop muted playsinline>
   <source src="Images/fond.mp4" type="video/mp4">
 </video>
 <div class="videoOverlay"></div>
 
 <div id="game">
-  <!-- HUD compacte -->
   <div class="hud hud--collapsed" id="hud">
     <button class="hud-toggle" id="hudToggle" aria-label="Afficher/masquer les libellés">☰</button>
     <div class="chip"><span class="lbl">Objectif</span><span class="val"><span id="progress">0</span>/<span id="target">10</span></span></div>
@@ -100,11 +85,9 @@
     <button id="btnStart" class="btn">Démarrer</button>
   </div>
 
-  <!-- Gnome + FX -->
   <div id="basket" aria-label="Gnome collecteur"></div>
   <canvas id="fx"></canvas>
 
-  <!-- Splash de niveau -->
   <div id="levelSplash" class="level-splash" style="display:none">
     <div class="level-inner">
       <div id="levelTitle" class="level-title">Niveau 1</div>
@@ -112,7 +95,6 @@
     </div>
   </div>
 
-  <!-- Intro + Profil + Top 3 -->
   <div id="intro" class="overlay">
     <div class="panel">
       <h2>La Marabelle — Récolte du Gnome</h2>
@@ -135,21 +117,17 @@
       <div class="avatar-grid" id="avatarGrid"></div>
 
       <div class="mini-board">
-        <div class="mini-row" style="justify-content:space-between">
-          <h3>🏆 Top 3 (meilleurs scores)</h3>
-          <button id="resetScores" class="btn ghost" style="padding:6px 10px;font-size:.9rem">Réinitialiser (local)</button>
-        </div>
+        <h3>🏆 Top 3 mondial (live)</h3>
         <ol id="top3"></ol>
       </div>
 
       <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:12px">
         <button class="btn" id="introStart" disabled>Jouer</button>
       </div>
-      <p style="font-size:.85rem; opacity:.8; margin-top:8px">Astuce : ton pseudo et ton meilleur score restent <em>sur cet appareil</em> (localStorage).</p>
+      <p style="font-size:.85rem; opacity:.8; margin-top:8px">Le classement est partagé entre tous les appareils (Stockage Supabase).</p>
     </div>
   </div>
 
-  <!-- Between (récap étendu) -->
   <div id="between" class="overlay" style="display:none">
     <div class="panel">
       <h2 id="betweenTitle">Bravo !</h2>
@@ -175,6 +153,9 @@
 
   <div class="credit">« Pour une tartine qui ne manque pas de Mara ! »</div>
 </div>
+
+<!-- Supabase CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
 /* ========= Sprites/Tags ========= */
@@ -208,7 +189,7 @@ function floatLabel(x,y,text,good=true){
   const el=document.createElement('div'); el.className='float'; el.textContent=text; el.style.color = good ? '#0c8b4b' : '#b02e2e'; el.style.left=x+'px'; el.style.top=y+'px'; game.appendChild(el); setTimeout(()=> el.remove(), 820);
 }
 
-/* ========= Audio SFX (WebAudio) ========= */
+/* ========= Audio SFX ========= */
 let AC=null, master=null, comp=null;
 const MASTER_VOLUME = 0.55;
 function initAudio(){
@@ -225,13 +206,13 @@ function noise({dur=.05,vol=.5,when=0}){ if(!AC) return; const t=AC.currentTime+
 function sfx(kind){ if(!AC) return; switch(kind){ case 'ok': tone({freq:660,freq2:880,dur:0.10,type:'triangle',vol:0.9}); break; case 'bad': tone({freq:220,freq2:120,dur:0.22,type:'sawtooth',vol:1.0}); break; case 'bonus': tone({freq:784,dur:0.07,type:'square',vol:0.8}); tone({freq:988,dur:0.07,type:'square',vol:0.75,when:.08}); tone({freq:1175,dur:0.09,type:'square',vol:0.75,when:.16}); break; case 'power': tone({freq:650,freq2:980,dur:.18,type:'sine',vol:.9}); tone({freq:980,freq2:1300,dur:.16,type:'sine',vol:.8,when:.12}); break; case 'tick': tone({freq:700,dur:.07,type:'square',vol:.7}); break; case 'go': tone({freq:1100,dur:.18,type:'sawtooth',vol:1}); break; case 'miss': tone({freq:1500,dur:.04,type:'square',vol:.5}); noise({dur:.03,vol:.25,when:.02}); break; } }
 ['click','touchstart'].forEach(ev=>{ document.addEventListener(ev, ()=>{ if(!AC){ initAudio(); } else { resumeAudio(); } }, {once:true, passive:true}); });
 
-/* ========= Fruits/Assets ========= */
+/* ========= Fruits ========= */
 const FRUIT_FILES = ['Pomme.svg','Pomme rouge.svg','Poire.svg','Orange.svg','Citron.svg','Prune.svg'];
 function fruitImgTag(){ const name = FRUIT_FILES[(Math.random()*FRUIT_FILES.length)|0]; const src='Images/SVG/'+encodeURIComponent(name); return `<img alt="fruit" src="${src}" />`; }
 const FASTFOOD_FILES = ['Burger.svg','Frites.svg','Pizza.svg','Donut.svg','HotDog.svg','Burrito.svg'];
 function fastFoodImgTag(){ const name = FASTFOOD_FILES[(Math.random()*FASTFOOD_FILES.length)|0]; const src='Images/SVG/'+encodeURIComponent(name); return `<img alt="junk" src="${src}" />`; }
 
-/* ========= Références UI ========= */
+/* ========= UI Refs ========= */
 const progressEl = $('#progress'), targetEl = $('#target'), scoreEl = $('#score'), timeEl = $('#time');
 const hud = document.getElementById('hud'); const hudToggle = document.getElementById('hudToggle');
 const intro = $('#intro'), between = $('#between'), gameover = $('#gameover');
@@ -244,7 +225,51 @@ const levelSplash = $('#levelSplash'), levelTitle = $('#levelTitle'), countdownE
 function setHudCollapsed(c){ hud.classList.toggle('hud--collapsed', c); }
 hudToggle.addEventListener('click', ()=> setHudCollapsed(!hud.classList.contains('hud--collapsed')));
 
-/* ========= Profil & Leaderboard (localStorage) ========= */
+/* ========= SUPABASE (temps réel) ========= */
+const SUPABASE_URL = 'https://gpkdtsxzgcqajdoxnllw.supabase.co';     // <— remplace
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdwa2R0c3h6Z2NxYWpkb3hubGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0MzIwMzAsImV4cCI6MjA3MTAwODAzMH0.mOgMv225hH4yX-0hm4jG-wOKdvKUtNpWNtjNEsTqOkM';                        // <— remplace
+let sb = null;
+try{
+  if(SUPABASE_URL.startsWith('http') && SUPABASE_ANON_KEY.length>10){
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession:false } });
+  }
+}catch(e){ console.warn('Supabase non initialisé', e); }
+
+/* API leaderboard */
+async function sbUpsertPlayer({name, avatar, bestScore, lastGame}){
+  if(!sb) return;
+  const { error } = await sb.from('leaderboard').upsert({
+    name, avatar, best_score: bestScore|0, last_game: lastGame || null, updated_at: new Date().toISOString()
+  }).select();
+  if(error) console.warn('upsert error', error);
+}
+
+async function sbFetchTop3(){
+  const topList = document.getElementById('top3');
+  if(!sb){ topList.innerHTML = '<li>(Supabase non configuré)</li>'; return; }
+  const { data, error } = await sb.from('leaderboard')
+    .select('name, avatar, best_score, updated_at')
+    .order('best_score', { ascending:false })
+    .order('updated_at', { ascending:false })
+    .limit(3);
+  if(error){ topList.innerHTML = '<li>Erreur de chargement</li>'; console.warn(error); return; }
+  topList.innerHTML = '';
+  if(!data || !data.length){ topList.innerHTML = '<li>Aucun score… à toi de jouer !</li>'; return; }
+  data.forEach((e,i)=>{
+    const li=document.createElement('li');
+    li.innerHTML = `<span class="mini-row"><span class="mini-avatar">${e.avatar||'?'}</span> <strong>${e.name}</strong> — ${e.best_score||0} pts</span>`;
+    topList.appendChild(li);
+  });
+}
+
+/* Abonnement temps réel */
+if(sb){
+  sb.channel('lb-realtime')
+    .on('postgres_changes',{ event: '*', schema:'public', table:'leaderboard' }, (payload)=>{ sbFetchTop3(); })
+    .subscribe();
+}
+
+/* ========= Profil & avatar (local: nom+avatar) ========= */
 const AVATARS = [
   { id:'A', svg:`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="28" fill="#ffd166" stroke="#b76e00" stroke-width="3"/><circle cx="24" cy="28" r="4" fill="#2b1e17"/><circle cx="40" cy="28" r="4" fill="#2b1e17"/><path d="M22 40 q10 6 20 0" stroke="#2b1e17" stroke-width="4" fill="none" stroke-linecap="round"/></svg>` },
   { id:'B', svg:`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="10" width="44" height="44" rx="10" fill="#8ecae6" stroke="#2b7085" stroke-width="3"/><circle cx="24" cy="28" r="4" fill="#2b1e17"/><circle cx="40" cy="28" r="4" fill="#2b1e17"/><path d="M20 42 q12 -6 24 0" stroke="#2b1e17" stroke-width="4" fill="none" stroke-linecap="round"/></svg>` },
@@ -253,36 +278,11 @@ const AVATARS = [
 ];
 
 const LS_CUR = 'LM_CUR_USER';
-const LS_BOARD = 'LM_LEADERBOARD';
-
 function getCurrentUser(){ try{ return JSON.parse(localStorage.getItem(LS_CUR)) || null; }catch{ return null; } }
 function setCurrentUser(u){ localStorage.setItem(LS_CUR, JSON.stringify(u)); }
-function getBoard(){ try{ return JSON.parse(localStorage.getItem(LS_BOARD)) || []; }catch{ return []; } }
-function setBoard(b){ localStorage.setItem(LS_BOARD, JSON.stringify(b)); }
-function upsertBoardEntry(name, avatar, score, lastGame){
-  const board = getBoard();
-  const i = board.findIndex(x=>x.name===name);
-  if(i>=0){
-    board[i].bestScore = Math.max(board[i].bestScore||0, score);
-    board[i].avatar = avatar;
-    board[i].lastGame = lastGame;
-  }else{
-    board.push({name, avatar, bestScore:score, lastGame});
-  }
-  // tri desc
-  board.sort((a,b)=> (b.bestScore||0) - (a.bestScore||0));
-  setBoard(board);
-}
-function renderTop3(){
-  const list = document.getElementById('top3'); list.innerHTML='';
-  const board = getBoard().slice(0,3);
-  if(board.length===0){ list.innerHTML = '<li>Aucun score… à toi de jouer !</li>'; return; }
-  board.forEach(e=>{
-    const li=document.createElement('li');
-    li.innerHTML = `<span class="mini-row"><span class="mini-avatar">${e.avatar||'?'}</span> <strong>${e.name}</strong> — ${e.bestScore||0} pts</span>`;
-    list.appendChild(li);
-  });
-}
+
+function renderTop3(){ sbFetchTop3(); }
+
 function buildAvatarGrid(){
   const grid = document.getElementById('avatarGrid'); grid.innerHTML='';
   AVATARS.forEach(a=>{
@@ -294,7 +294,6 @@ function buildAvatarGrid(){
     });
     grid.appendChild(div);
   });
-  // présélection 1er
   if(grid.firstChild) grid.firstChild.classList.add('selected');
 }
 
@@ -306,10 +305,6 @@ function ensureProfileUI(){
   nameInput.addEventListener('input', ()=>{ playBtn.disabled = nameInput.value.trim()===''; });
   buildAvatarGrid(); renderTop3();
 }
-
-document.getElementById('resetScores').addEventListener('click', ()=>{
-  if(confirm('Réinitialiser le leaderboard local ?')){ localStorage.removeItem(LS_BOARD); renderTop3(); }
-});
 
 /* ========= État du jeu ========= */
 let items=[], nextSpawnAt=0, raf=null, tPrev=0, timerId=null, levelIndex=0;
@@ -331,10 +326,10 @@ const LEVELS = [
 /* ========= Démarrage / boutons ========= */
 $('#introStart').onclick = () => {
   initAudio(); resumeAudio();
-  // créer/mettre à jour le profil courant
-  const name = document.getElementById('playerName').value.trim().slice(0,16);
+  const nameRaw = document.getElementById('playerName').value.trim().slice(0,16);
+  const name = nameRaw.replace(/[^\p{L}\p{N}_\- ]/gu,''); // simple sanitization
   const sel = document.querySelector('.avatar.selected'); const avatar = sel ? sel.dataset.id : 'A';
-  const cur = { name, avatar, bestScore: (getBoard().find(b=>b.name===name)?.bestScore)||0, lastGame:null };
+  const cur = { name, avatar, bestScore: 0, lastGame:null };
   setCurrentUser(cur);
   renderTop3();
   startLevel(0);
@@ -367,7 +362,7 @@ function beginGameplay(){
   const L = LEVELS[levelIndex];
   if (window.matchMedia('(min-width: 769px)').matches){ setHudCollapsed(false); } else { setHudCollapsed(true); }
   clearInterval(timerId);
-  timerId = setInterval(()=>{ if(!running) return; timeLeft--; timeEl.textContent=timeLeft; if(timeLeft<=0){ running=false; finish(false); } },1000);
+  timerId = setInterval(()=>{ if(!running) return; timeLeft--; timeEl.textContent = timeLeft; if(timeLeft<=0){ running=false; finish(false); } },1000);
   running=true; cancelAnimationFrame(raf); tPrev=now(); levelStartMs = performance.now(); raf=requestAnimationFrame(tick);
 }
 function showCountdown(levelNum, onDone){
@@ -380,27 +375,26 @@ function showCountdown(levelNum, onDone){
   }, 800);
 }
 
-/* ========= Fin de niveau + Leaderboard ========= */
-function finish(win){
+/* ========= Fin de niveau : envoi Supabase + récap ========= */
+async function finish(win){
   running=false;
   clearInterval(timerId); cancelAnimationFrame(raf); clearTimeout(multTimeout);
   items.forEach(el=>el.node.remove()); items=[]; nextSpawnAt=Number.POSITIVE_INFINITY;
 
-  // stats de la manche
   const L = LEVELS[levelIndex];
   const elapsedMs = performance.now() - levelStartMs;
-  const used = Math.min(L.duration, Math.round(elapsedMs/1000)); // s
+  const used = Math.min(L.duration, Math.round(elapsedMs/1000));
   const usedStr = mmss(used*1000);
 
-  // Mise à jour profil & leaderboard
   const cur = getCurrentUser();
   if(cur){
     const lastGame = { date: new Date().toISOString(), level: levelIndex+1, score, caught, target:L.target, timeUsedSec: used, misses, bestCombo:maxCombo };
-    cur.bestScore = Math.max(cur.bestScore||0, score);
-    cur.lastGame = lastGame;
-    setCurrentUser(cur);
-    upsertBoardEntry(cur.name, cur.avatar, cur.bestScore, lastGame);
-    renderTop3();
+    const bestScore = Math.max(cur.bestScore||0, score);
+    setCurrentUser({ ...cur, bestScore, lastGame });
+
+    // ⇢ Cloud upsert + refresh top3 (temps réel fera aussi le boulot)
+    await sbUpsertPlayer({ name: cur.name, avatar: cur.avatar, bestScore, lastGame });
+    sbFetchTop3();
   }
 
   if(win){
@@ -418,7 +412,7 @@ function finish(win){
   }
 }
 
-/* ========= Boucle jeu ========= */
+/* ========= Boucle ========= */
 function tick(ts){
   if (!running) return;
   const L = LEVELS[levelIndex]; const dt = (ts - tPrev)/1000; tPrev = ts;
@@ -493,7 +487,7 @@ function catchItem(it){
   if (it.type==='jar'){ multiplier=2; floatLabel(cx,cy,'x2 🍯',true); sfx('power'); clearTimeout(multTimeout); multTimeout=setTimeout(()=>{ multiplier=1; }, L.jarDuration); }
 }
 
-/* ========= Contrôles gnome ========= */
+/* ========= Contrôles ========= */
 function clamp(v,min,max){ return v<min?min:(v>max?max:v); }
 function setBasket(x){
   const newX = clamp(x - basketW/2, 0, game.clientWidth - basketW);
@@ -508,7 +502,6 @@ intro.style.display='grid';
 ensureProfileUI();
 </script>
 
-<!-- Script ralenti vidéo -->
 <script>
   (function() {
     const video = document.getElementById('bgVideo'); if (!video) return;
