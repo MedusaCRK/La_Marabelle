@@ -59,7 +59,16 @@
   .mini-board h3{ margin:0 0 6px; font-size:1rem }
   .mini-board ol{ margin:0; padding-left:1.2rem; }
   .mini-row{ display:flex; align-items:center; gap:8px; }
-  .mini-avatar{ width:22px; height:22px; border-radius:50%; display:inline-grid; place-items:center; background:#ffd166; font-weight:800; }
+
+  /* >>> updated: mini-avatar affiche un SVG proprement */
+  .mini-avatar{
+    width:22px; height:22px;
+    border-radius:6px;
+    overflow:hidden;
+    display:inline-grid; place-items:center;
+    background:#fff; border:1px solid #f0e0c8;
+  }
+  .mini-avatar svg{ width:100%; height:100%; display:block; }
 
   @media (max-width: 480px){
     .hud .chip{ padding:6px 10px; font-size:14px; }
@@ -226,8 +235,8 @@ function setHudCollapsed(c){ hud.classList.toggle('hud--collapsed', c); }
 hudToggle.addEventListener('click', ()=> setHudCollapsed(!hud.classList.contains('hud--collapsed')));
 
 /* ========= SUPABASE (temps réel) ========= */
-const SUPABASE_URL = 'https://gpkdtsxzgcqajdoxnllw.supabase.co';     // <— remplace
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdwa2R0c3h6Z2NxYWpkb3hubGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0MzIwMzAsImV4cCI6MjA3MTAwODAzMH0.mOgMv225hH4yX-0hm4jG-wOKdvKUtNpWNtjNEsTqOkM';                        // <— remplace
+const SUPABASE_URL = 'https://gpkdtsxzgcqajdoxnllw.supabase.co';     // <— remplace si besoin
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdwa2R0c3h6Z2NxYWpkb3hubGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0MzIwMzAsImV4cCI6MjA3MTAwODAzMH0.mOgMv225hH4yX-0hm4jG-wOKdvKUtNpWNtjNEsTqOkM';                        // <— remplace si besoin
 let sb = null;
 try{
   if(SUPABASE_URL.startsWith('http') && SUPABASE_ANON_KEY.length>10){
@@ -244,6 +253,23 @@ async function sbUpsertPlayer({name, avatar, bestScore, lastGame}){
   if(error) console.warn('upsert error', error);
 }
 
+/* ========= Profil & avatar ========= */
+const AVATARS = [
+  { id:'A', svg:`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="28" fill="#ffd166" stroke="#b76e00" stroke-width="3"/><circle cx="24" cy="28" r="4" fill="#2b1e17"/><circle cx="40" cy="28" r="4" fill="#2b1e17"/><path d="M22 40 q10 6 20 0" stroke="#2b1e17" stroke-width="4" fill="none" stroke-linecap="round"/></svg>` },
+  { id:'B', svg:`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="10" width="44" height="44" rx="10" fill="#8ecae6" stroke="#2b7085" stroke-width="3"/><circle cx="24" cy="28" r="4" fill="#2b1e17"/><circle cx="40" cy="28" r="4" fill="#2b1e17"/><path d="M20 42 q12 -6 24 0" stroke="#2b1e17" stroke-width="4" fill="none" stroke-linecap="round"/></svg>` },
+  { id:'C', svg:`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="36" r="22" fill="#06d6a0" stroke="#067a62" stroke-width="3"/><path d="M18 20 l14 -10 l14 10" stroke="#067a62" stroke-width="4" fill="#06d6a0"/><circle cx="24" cy="34" r="4" fill="#2b1e17"/><circle cx="40" cy="34" r="4" fill="#2b1e17"/><path d="M22 46 q10 5 20 0" stroke="#2b1e17" stroke-width="4" fill="none" stroke-linecap="round"/></svg>` },
+  { id:'D', svg:`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="28" fill="#ffb703" stroke="#b76e00" stroke-width="3"/><path d="M16 20 q16 -10 32 0" stroke="#b76e00" stroke-width="4" fill="none"/><circle cx="24" cy="32" r="4" fill="#2b1e17"/><circle cx="40" cy="32" r="4" fill="#2b1e17"/><path d="M22 42 q10 8 20 0" stroke="#2b1e17" stroke-width="4" fill="none" stroke-linecap="round"/></svg>` },
+];
+function getAvatarSvgById(id){
+  const a = AVATARS.find(x => x.id === id);
+  return a ? a.svg : AVATARS[0].svg;
+}
+
+const LS_CUR = 'LM_CUR_USER';
+function getCurrentUser(){ try{ return JSON.parse(localStorage.getItem(LS_CUR)) || null; }catch{ return null; } }
+function setCurrentUser(u){ localStorage.setItem(LS_CUR, JSON.stringify(u)); }
+
+/* Top 3 (cloud) */
 async function sbFetchTop3(){
   const topList = document.getElementById('top3');
   if(!sb){ topList.innerHTML = '<li>(Supabase non configuré)</li>'; return; }
@@ -255,34 +281,26 @@ async function sbFetchTop3(){
   if(error){ topList.innerHTML = '<li>Erreur de chargement</li>'; console.warn(error); return; }
   topList.innerHTML = '';
   if(!data || !data.length){ topList.innerHTML = '<li>Aucun score… à toi de jouer !</li>'; return; }
-  data.forEach((e,i)=>{
+  data.forEach(e=>{
     const li=document.createElement('li');
-    li.innerHTML = `<span class="mini-row"><span class="mini-avatar">${e.avatar||'?'}</span> <strong>${e.name}</strong> — ${e.best_score||0} pts</span>`;
+    li.innerHTML = `
+      <span class="mini-row">
+        <span class="mini-avatar">${getAvatarSvgById(e.avatar)}</span>
+        <strong>${e.name}</strong> — ${e.best_score||0} pts
+      </span>`;
     topList.appendChild(li);
   });
 }
+function renderTop3(){ sbFetchTop3(); }
 
 /* Abonnement temps réel */
 if(sb){
   sb.channel('lb-realtime')
-    .on('postgres_changes',{ event: '*', schema:'public', table:'leaderboard' }, (payload)=>{ sbFetchTop3(); })
+    .on('postgres_changes',{ event: '*', schema:'public', table:'leaderboard' }, ()=>{ sbFetchTop3(); })
     .subscribe();
 }
 
-/* ========= Profil & avatar (local: nom+avatar) ========= */
-const AVATARS = [
-  { id:'A', svg:`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="28" fill="#ffd166" stroke="#b76e00" stroke-width="3"/><circle cx="24" cy="28" r="4" fill="#2b1e17"/><circle cx="40" cy="28" r="4" fill="#2b1e17"/><path d="M22 40 q10 6 20 0" stroke="#2b1e17" stroke-width="4" fill="none" stroke-linecap="round"/></svg>` },
-  { id:'B', svg:`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="10" width="44" height="44" rx="10" fill="#8ecae6" stroke="#2b7085" stroke-width="3"/><circle cx="24" cy="28" r="4" fill="#2b1e17"/><circle cx="40" cy="28" r="4" fill="#2b1e17"/><path d="M20 42 q12 -6 24 0" stroke="#2b1e17" stroke-width="4" fill="none" stroke-linecap="round"/></svg>` },
-  { id:'C', svg:`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="36" r="22" fill="#06d6a0" stroke="#067a62" stroke-width="3"/><path d="M18 20 l14 -10 l14 10" stroke="#067a62" stroke-width="4" fill="#06d6a0"/><circle cx="24" cy="34" r="4" fill="#2b1e17"/><circle cx="40" cy="34" r="4" fill="#2b1e17"/><path d="M22 46 q10 5 20 0" stroke="#2b1e17" stroke-width="4" fill="none" stroke-linecap="round"/></svg>` },
-  { id:'D', svg:`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="28" fill="#ffb703" stroke="#b76e00" stroke-width="3"/><path d="M16 20 q16 -10 32 0" stroke="#b76e00" stroke-width="4" fill="none"/><circle cx="24" cy="32" r="4" fill="#2b1e17"/><circle cx="40" cy="32" r="4" fill="#2b1e17"/><path d="M22 42 q10 8 20 0" stroke="#2b1e17" stroke-width="4" fill="none" stroke-linecap="round"/></svg>` },
-];
-
-const LS_CUR = 'LM_CUR_USER';
-function getCurrentUser(){ try{ return JSON.parse(localStorage.getItem(LS_CUR)) || null; }catch{ return null; } }
-function setCurrentUser(u){ localStorage.setItem(LS_CUR, JSON.stringify(u)); }
-
-function renderTop3(){ sbFetchTop3(); }
-
+/* UI avatar */
 function buildAvatarGrid(){
   const grid = document.getElementById('avatarGrid'); grid.innerHTML='';
   AVATARS.forEach(a=>{
@@ -296,7 +314,6 @@ function buildAvatarGrid(){
   });
   if(grid.firstChild) grid.firstChild.classList.add('selected');
 }
-
 function ensureProfileUI(){
   const nameInput = document.getElementById('playerName');
   const playBtn = document.getElementById('introStart');
@@ -324,21 +341,26 @@ const LEVELS = [
 ];
 
 /* ========= Démarrage / boutons ========= */
-$('#introStart').onclick = () => {
+document.getElementById('introStart').onclick = () => {
   initAudio(); resumeAudio();
   const nameRaw = document.getElementById('playerName').value.trim().slice(0,16);
-  const name = nameRaw.replace(/[^\p{L}\p{N}_\- ]/gu,''); // simple sanitization
+  const name = nameRaw.replace(/[^\p{L}\p{N}_\- ]/gu,'');
   const sel = document.querySelector('.avatar.selected'); const avatar = sel ? sel.dataset.id : 'A';
   const cur = { name, avatar, bestScore: 0, lastGame:null };
   setCurrentUser(cur);
   renderTop3();
+
+  /* >>> reset score pour une NOUVELLE partie */
+  score = 0;
+  scoreEl.textContent = '0';
+
   startLevel(0);
 };
 btnStart.onclick        = () => { initAudio(); resumeAudio(); startLevel(levelIndex); };
-$('#nextLevel').onclick = () => { initAudio(); resumeAudio(); startLevel(levelIndex+1); };
-$('#replayLevel').onclick=() => { initAudio(); resumeAudio(); startLevel(levelIndex); };
-$('#retry').onclick     = () => { initAudio(); resumeAudio(); startLevel(levelIndex); };
-$('#quit').onclick      = () => { gameover.style.display='none'; intro.style.display='grid'; ensureProfileUI(); };
+document.getElementById('nextLevel').onclick = () => { initAudio(); resumeAudio(); startLevel(levelIndex+1); };
+document.getElementById('replayLevel').onclick=() => { initAudio(); resumeAudio(); startLevel(levelIndex); };
+document.getElementById('retry').onclick     = () => { initAudio(); resumeAudio(); startLevel(levelIndex); };
+document.getElementById('quit').onclick      = () => { gameover.style.display='none'; intro.style.display='grid'; ensureProfileUI(); };
 
 /* ========= Lancement d’un niveau ========= */
 function startLevel(i){
@@ -392,7 +414,6 @@ async function finish(win){
     const bestScore = Math.max(cur.bestScore||0, score);
     setCurrentUser({ ...cur, bestScore, lastGame });
 
-    // ⇢ Cloud upsert + refresh top3 (temps réel fera aussi le boulot)
     await sbUpsertPlayer({ name: cur.name, avatar: cur.avatar, bestScore, lastGame });
     sbFetchTop3();
   }
@@ -404,7 +425,7 @@ async function finish(win){
       `Récoltés : <strong>${caught}</strong> / ${L.target} &nbsp;•&nbsp; Temps : <strong>${usedStr}</strong><br>
        Ratés : <strong>${misses}</strong> &nbsp;•&nbsp; Meilleur combo : <strong>x${maxCombo}</strong> &nbsp;•&nbsp; Score total : <strong>${score}</strong>`;
     between.style.display='grid';
-    if(levelIndex >= LEVELS.length-1){ $('#nextLevel').style.display='none'; setTimeout(()=>$('#nextLevel').style.display='',10); }
+    if(levelIndex >= LEVELS.length-1){ document.getElementById('nextLevel').style.display='none'; setTimeout(()=>document.getElementById('nextLevel').style.display='',10); }
   }else{
     overTitle.textContent='Oups… Temps écoulé !';
     overMsg.textContent=`Récolte : ${caught}/${L.target} — Temps : ${usedStr} — Score : ${score}`;
