@@ -4,58 +4,38 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>La Marabelle — Panier à Mirabelles (Vidéo + Niveaux)</title>
-<meta name="description" content="Attrape les fruits ! 3 niveaux, gnome, pot de confiture, fast-food malus, fond vidéo, décompte stylé.">
+<meta name="description" content="Attrape les fruits ! 3 niveaux, gnome, pot de confiture, fast-food malus, fond vidéo, profils et leaderboard.">
 <style>
   :root{
     --ink:#2b1e17; --card:#ffffffea; --shadow:0 12px 30px rgba(0,0,0,.12);
-    --accent:#ffb703; --accent2:#fb8500;
+    --accent:#ffb703; --accent2:#fb8500; --mint:#8ecae6;
   }
   *{box-sizing:border-box}
   html,body{height:100%}
   body{ margin:0; font-family: ui-rounded, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; color:var(--ink); overflow:hidden; }
 
   /* Vidéo de fond */
-  #bgVideo{
-    position: fixed; inset: 0; width: 100%; height: 100%;
-    object-fit: cover; z-index: -2; background:#fff9f4;
-  }
-  .videoOverlay{
-    position: fixed; inset:0; z-index:-1;
-    background: radial-gradient(100% 60% at 50% 20%, rgba(255,255,255,.15), rgba(0,0,0,.20));
-    pointer-events:none;
-  }
+  #bgVideo{ position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; background:#fff9f4; }
+  .videoOverlay{ position: fixed; inset:0; z-index:-1; background: radial-gradient(100% 60% at 50% 20%, rgba(255,255,255,.15), rgba(0,0,0,.20)); pointer-events:none; }
 
   /* Conteneur jeu */
   #game {position:relative; width:100vw; height:100vh; overflow:hidden;}
 
   /* HUD compacte (Niveau/Combo/Ratés retirés) */
   .hud{ position:absolute; top:10px; left:10px; right:10px; display:flex; gap:8px; align-items:center; z-index:5; overflow-x:auto; -webkit-overflow-scrolling:touch; }
-  .hud .chip{
-    background:var(--card); border:1px solid #f0e0c8; border-radius:999px;
-    padding:8px 12px; box-shadow:var(--shadow); font-weight:700; white-space:nowrap; display:flex; gap:.45rem; align-items:center;
-  }
-  .hud .hud-toggle{
-    appearance:none; border:1px solid #f0e0c8; background:#fff; box-shadow:var(--shadow);
-    border-radius:10px; padding:8px 10px; font-weight:800; cursor:pointer;
-  }
+  .hud .chip{ background:var(--card); border:1px solid #f0e0c8; border-radius:999px; padding:8px 12px; box-shadow:var(--shadow); font-weight:700; white-space:nowrap; display:flex; gap:.45rem; align-items:center; }
+  .hud .hud-toggle{ appearance:none; border:1px solid #f0e0c8; background:#fff; box-shadow:var(--shadow); border-radius:10px; padding:8px 10px; font-weight:800; cursor:pointer; }
   .spacer{ flex:1 }
   .btn{ appearance:none; border:0; background:var(--accent2); color:#fff; padding:10px 14px; border-radius:12px; font-weight:800; box-shadow:0 10px 18px rgba(251,133,0,.25); cursor:pointer; }
   .btn.ghost{ background:#fff; color:var(--ink); border:1px solid #f0e0c8; }
 
   .hud.hud--collapsed .lbl{ display:none; }
   .hud.hud--collapsed .chip{ padding:6px 10px; font-weight:800; }
-  .hud.hud--collapsed #btnStart{
-    position:fixed; left:50%; bottom:16px; transform:translateX(-50%);
-    z-index:7;
-  }
+  .hud.hud--collapsed #btnStart{ position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:7; }
 
   /* GNOME (panier) */
-  #basket{
-    position:absolute; bottom:8vh; left:50%; transform:translateX(-50%);
-    width:120px; height:140px;
-    background: url('Images/SVG/Gnome_Perso.svg') center bottom / contain no-repeat;
-    border:none; box-shadow:none; transition: transform 80ms linear;
-  }
+  #basket{ position:absolute; bottom:8vh; left:50%; transform:translateX(-50%); width:120px; height:140px;
+    background: url('Images/SVG/Gnome_Perso.svg') center bottom / contain no-repeat; border:none; box-shadow:none; transition: transform 80ms linear; }
   #basket.flipX{ transform: translateX(-50%) scaleX(-1); }
 
   /* Items */
@@ -69,27 +49,28 @@
 
   /* Overlays */
   .overlay{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(255,249,244,.55); backdrop-filter: blur(2px); z-index:6; padding:20px; text-align:center; }
-  .panel{ background:var(--card); border:1px solid #f0e0c8; border-radius:18px; box-shadow:var(--shadow); padding:20px; max-width:520px; }
+  .panel{ background:var(--card); border:1px solid #f0e0c8; border-radius:18px; box-shadow:var(--shadow); padding:20px; max-width:640px; width:min(92vw,640px); }
   .panel h2{ margin:6px 0 8px } .panel p{ margin:0 0 12px }
 
   /* Splash de niveau + décompte */
-  .level-splash{
-    position:absolute; inset:0; display:grid; place-items:center;
-    z-index:7; pointer-events:none; background:rgba(0,0,0,.18);
-    backdrop-filter: blur(1px);
-  }
+  .level-splash{ position:absolute; inset:0; display:grid; place-items:center; z-index:7; pointer-events:none; background:rgba(0,0,0,.18); backdrop-filter: blur(1px); }
   .level-inner{ text-align:center; color:#fff; text-shadow:0 4px 0 rgba(0,0,0,.25), 0 10px 30px rgba(0,0,0,.35); }
-  .level-title{
-    font-family: "Impact", "Anton", "Bangers", system-ui, sans-serif;
-    letter-spacing:.02em; font-size: clamp(32px, 7vw, 72px);
-    -webkit-text-stroke:2px rgba(0,0,0,.35);
-  }
-  .countdown{
-    font-family: "Press Start 2P", ui-monospace, monospace;
-    font-size: clamp(28px, 12vw, 120px);
-    margin-top:.2em; animation: pop .25s ease;
-  }
+  .level-title{ font-family: "Impact","Anton","Bangers", system-ui, sans-serif; letter-spacing:.02em; font-size: clamp(32px, 7vw, 72px); -webkit-text-stroke:2px rgba(0,0,0,.35); }
+  .countdown{ font-family: "Press Start 2P", ui-monospace, monospace; font-size: clamp(28px, 12vw, 120px); margin-top:.2em; animation: pop .25s ease; }
   @keyframes pop{ from{transform:scale(.7); opacity:.6} to{transform:scale(1); opacity:1} }
+
+  /* Sélecteur d’avatar */
+  .avatar-grid{ display:grid; grid-template-columns:repeat(4, minmax(64px,1fr)); gap:10px; margin:10px 0 4px; }
+  .avatar{ border:2px solid #e9d9b7; border-radius:14px; padding:6px; cursor:pointer; background:#fff; box-shadow:var(--shadow); position:relative; }
+  .avatar.selected{ outline:3px solid var(--accent); border-color:var(--accent2); }
+  .avatar svg{ width:100%; height:auto; display:block; }
+  .name-row{ display:flex; gap:10px; align-items:center; margin:8px 0 4px; }
+  .name-row input{ flex:1; padding:10px 12px; border-radius:10px; border:1px solid #e9d9b7; font-weight:700; }
+  .mini-board{ background:#fff; border:1px solid #f0e0c8; border-radius:12px; padding:10px; box-shadow:var(--shadow); margin-top:12px; text-align:left; }
+  .mini-board h3{ margin:0 0 6px; font-size:1rem }
+  .mini-board ol{ margin:0; padding-left:1.2rem; }
+  .mini-row{ display:flex; align-items:center; gap:8px; }
+  .mini-avatar{ width:22px; height:22px; border-radius:50%; display:inline-grid; place-items:center; background:#ffd166; font-weight:800; }
 
   /* Mobile */
   @media (max-width: 480px){
@@ -109,7 +90,7 @@
 <div class="videoOverlay"></div>
 
 <div id="game">
-  <!-- HUD (Niveau/Combo/Ratés retirés) -->
+  <!-- HUD compacte -->
   <div class="hud hud--collapsed" id="hud">
     <button class="hud-toggle" id="hudToggle" aria-label="Afficher/masquer les libellés">☰</button>
     <div class="chip"><span class="lbl">Objectif</span><span class="val"><span id="progress">0</span>/<span id="target">10</span></span></div>
@@ -131,35 +112,44 @@
     </div>
   </div>
 
-  <!-- Overlays -->
+  <!-- Intro + Profil + Top 3 -->
   <div id="intro" class="overlay">
     <div class="panel">
       <h2>La Marabelle — Récolte du Gnome</h2>
       <p>
         Attrape les fruits 
-        <span style="display:inline-block;width:32px;height:32px;vertical-align:middle">
-          <img src="Images/SVG/Pomme.svg" alt="fruit" style="width:100%;height:100%">
-        </span> !
-        <br>
-        Évite le fast-food 
-        <span style="display:inline-block;width:32px;height:32px;vertical-align:middle">
-          <img src="Images/SVG/Burger.svg" alt="junk" style="width:100%;height:100%">
-        </span>,
-        vise le gnome bonus 
-        <span style="display:inline-block;width:32px;height:32px;vertical-align:middle">
-          <img src="Images/SVG/Gnome.png" alt="gnome bonus" style="width:100%;height:100%">
-        </span>
-        (+5) et le pot
-        <span style="display:inline-block;width:32px;height:32px;vertical-align:middle">
-          <img src="Images/SVG/JamJar.svg" alt="pot confiture" style="width:100%;height:100%">
-        </span>
-        (x2 pendant 5s).
+        <span style="display:inline-block;width:32px;height:32px;vertical-align:middle"><img src="Images/SVG/Pomme.svg" alt="fruit" style="width:100%;height:100%"></span> !
+        <br>Évite le fast-food 
+        <span style="display:inline-block;width:32px;height:32px;vertical-align:middle"><img src="Images/SVG/Burger.svg" alt="junk" style="width:100%;height:100%"></span>,
+        vise le gnome 
+        <span style="display:inline-block;width:32px;height:32px;vertical-align:middle"><img src="Images/SVG/Gnome.png" alt="gnome bonus" style="width:100%;height:100%"></span> (+5) et le pot
+        <span style="display:inline-block;width:32px;height:32px;vertical-align:middle"><img src="Images/SVG/JamJar.svg" alt="pot confiture" style="width:100%;height:100%"></span> (x2 pendant 5s).
       </p>
-      <p>3 niveaux : de doux à corsé. Prêt·e ?</p>
-      <button class="btn" id="introStart">Jouer</button>
+
+      <div class="name-row">
+        <label for="playerName"><strong>Ton pseudo</strong></label>
+        <input id="playerName" placeholder="Ex : MaraFan" maxlength="16">
+      </div>
+
+      <div><strong>Choisis un avatar</strong></div>
+      <div class="avatar-grid" id="avatarGrid"></div>
+
+      <div class="mini-board">
+        <div class="mini-row" style="justify-content:space-between">
+          <h3>🏆 Top 3 (meilleurs scores)</h3>
+          <button id="resetScores" class="btn ghost" style="padding:6px 10px;font-size:.9rem">Réinitialiser (local)</button>
+        </div>
+        <ol id="top3"></ol>
+      </div>
+
+      <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:12px">
+        <button class="btn" id="introStart" disabled>Jouer</button>
+      </div>
+      <p style="font-size:.85rem; opacity:.8; margin-top:8px">Astuce : ton pseudo et ton meilleur score restent <em>sur cet appareil</em> (localStorage).</p>
     </div>
   </div>
 
+  <!-- Between (récap étendu) -->
   <div id="between" class="overlay" style="display:none">
     <div class="panel">
       <h2 id="betweenTitle">Bravo !</h2>
@@ -199,32 +189,23 @@ function setFxSize(){ fx.width = game.clientWidth; fx.height = game.clientHeight
 addEventListener('resize', setFxSize); setFxSize();
 function rand(min,max){ return Math.random()*(max-min)+min; }
 function now(){ return performance.now(); }
+function pad2(n){ return n<10?'0'+n:''+n; }
+function mmss(ms){ const s=Math.max(0,Math.round(ms/1000)); const m=(s/60|0); return `${m}:${pad2(s%60)}`; }
 
 /* ========= FX visuels ========= */
 let particles = [], anim=null;
 function burst(x,y,colors=['#ffb703','#fb8500','#8ecae6','#3a7a3a']){
-  for(let i=0;i<18;i++){
-    particles.push({x,y,vx:rand(-2,2),vy:rand(-3,0),a:rand(0,Math.PI*2),life:rand(28,50),c:colors[i%colors.length]});
-  }
+  for(let i=0;i<18;i++){ particles.push({x,y,vx:rand(-2,2),vy:rand(-3,0),a:rand(0,Math.PI*2),life:rand(28,50),c:colors[i%colors.length]}); }
   if(!anim) anim = requestAnimationFrame(drawFx);
 }
 function drawFx(){
   ctx.clearRect(0,0,fx.width,fx.height);
-  particles.forEach(p=>{
-    p.x+=p.vx; p.y+=p.vy; p.vy += .08; p.life--;
-    ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.a+=.1);
-    ctx.fillStyle=p.c; ctx.fillRect(-3,-3,6,-6);
-    ctx.restore();
-  });
+  particles.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy += .08; p.life--; ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.a+=.1); ctx.fillStyle=p.c; ctx.fillRect(-3,-3,6,-6); ctx.restore();});
   particles = particles.filter(p=>p.life>0 && p.y<fx.height+8);
   anim = particles.length ? requestAnimationFrame(drawFx) : null;
 }
 function floatLabel(x,y,text,good=true){
-  const el=document.createElement('div');
-  el.className='float'; el.textContent=text;
-  el.style.color = good ? '#0c8b4b' : '#b02e2e';
-  el.style.left=x+'px'; el.style.top=y+'px';
-  game.appendChild(el); setTimeout(()=> el.remove(), 820);
+  const el=document.createElement('div'); el.className='float'; el.textContent=text; el.style.color = good ? '#0c8b4b' : '#b02e2e'; el.style.left=x+'px'; el.style.top=y+'px'; game.appendChild(el); setTimeout(()=> el.remove(), 820);
 }
 
 /* ========= Audio SFX (WebAudio) ========= */
@@ -233,35 +214,15 @@ const MASTER_VOLUME = 0.55;
 function initAudio(){
   if(AC) return;
   const Ctx = window.AudioContext || window.webkitAudioContext; if(!Ctx) return;
-  AC = new Ctx();
-  master = AC.createGain();
-  comp = AC.createDynamicsCompressor();
+  AC = new Ctx(); master = AC.createGain(); comp = AC.createDynamicsCompressor();
   comp.threshold.value=-12; comp.knee.value=20; comp.ratio.value=6; comp.attack.value=.003; comp.release.value=.25;
-  master.gain.value = new URLSearchParams(location.search).has('vol')
-    ? Math.max(0,Math.min(2,parseFloat(new URLSearchParams(location.search).get('vol'))))
-    : MASTER_VOLUME;
+  master.gain.value = new URLSearchParams(location.search).has('vol') ? Math.max(0,Math.min(2,parseFloat(new URLSearchParams(location.search).get('vol')))) : MASTER_VOLUME;
   master.connect(comp); comp.connect(AC.destination);
 }
 function resumeAudio(){ if(AC && AC.state==='suspended') AC.resume(); }
-function tone({freq=440,freq2=null,dur=.12,type='sine',attack=.005,release=.08,vol=.8,when=0}){
-  if(!AC) return; const t=AC.currentTime+when; const o=AC.createOscillator(); const g=AC.createGain();
-  o.type=type; o.frequency.setValueAtTime(freq,t); if(freq2) o.frequency.exponentialRampToValueAtTime(freq2,t+dur*.9);
-  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+attack); g.gain.exponentialRampToValueAtTime(0.0001,t+dur+release);
-  o.connect(g); g.connect(master); o.start(t); o.stop(t+dur+release+.02);
-}
+function tone({freq=440,freq2=null,dur=.12,type='sine',attack=.005,release=.08,vol=.8,when=0}){ if(!AC) return; const t=AC.currentTime+when; const o=AC.createOscillator(); const g=AC.createGain(); o.type=type; o.frequency.setValueAtTime(freq,t); if(freq2) o.frequency.exponentialRampToValueAtTime(freq2,t+dur*.9); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+attack); g.gain.exponentialRampToValueAtTime(0.0001,t+dur+release); o.connect(g); g.connect(master); o.start(t); o.stop(t+dur+release+.02);}
 function noise({dur=.05,vol=.5,when=0}){ if(!AC) return; const t=AC.currentTime+when; const b=AC.createBuffer(1,AC.sampleRate*dur,AC.sampleRate); const d=b.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*.5; const s=AC.createBufferSource(); s.buffer=b; const g=AC.createGain(); g.gain.value=vol; s.connect(g); g.connect(master); s.start(t); }
-function sfx(kind){
-  if(!AC) return;
-  switch(kind){
-    case 'ok': tone({freq:660,freq2:880,dur:0.10,type:'triangle',vol:0.9}); break;
-    case 'bad': tone({freq:220,freq2:120,dur:0.22,type:'sawtooth',vol:1.0}); break;
-    case 'bonus': tone({freq:784,dur:0.07,type:'square',vol:0.8}); tone({freq:988,dur:0.07,type:'square',vol:0.75,when:.08}); tone({freq:1175,dur:0.09,type:'square',vol:0.75,when:.16}); break;
-    case 'power': tone({freq:650,freq2:980,dur:.18,type:'sine',vol:.9}); tone({freq:980,freq2:1300,dur:.16,type:'sine',vol:.8,when:.12}); break;
-    case 'tick': tone({freq:700,dur:.07,type:'square',vol:.7}); break;
-    case 'go': tone({freq:1100,dur:.18,type:'sawtooth',vol:1}); break;
-    case 'miss': tone({freq:1500,dur:.04,type:'square',vol:.5}); noise({dur:.03,vol:.25,when:.02}); break;
-  }
-}
+function sfx(kind){ if(!AC) return; switch(kind){ case 'ok': tone({freq:660,freq2:880,dur:0.10,type:'triangle',vol:0.9}); break; case 'bad': tone({freq:220,freq2:120,dur:0.22,type:'sawtooth',vol:1.0}); break; case 'bonus': tone({freq:784,dur:0.07,type:'square',vol:0.8}); tone({freq:988,dur:0.07,type:'square',vol:0.75,when:.08}); tone({freq:1175,dur:0.09,type:'square',vol:0.75,when:.16}); break; case 'power': tone({freq:650,freq2:980,dur:.18,type:'sine',vol:.9}); tone({freq:980,freq2:1300,dur:.16,type:'sine',vol:.8,when:.12}); break; case 'tick': tone({freq:700,dur:.07,type:'square',vol:.7}); break; case 'go': tone({freq:1100,dur:.18,type:'sawtooth',vol:1}); break; case 'miss': tone({freq:1500,dur:.04,type:'square',vol:.5}); noise({dur:.03,vol:.25,when:.02}); break; } }
 ['click','touchstart'].forEach(ev=>{ document.addEventListener(ev, ()=>{ if(!AC){ initAudio(); } else { resumeAudio(); } }, {once:true, passive:true}); });
 
 /* ========= Fruits/Assets ========= */
@@ -283,11 +244,78 @@ const levelSplash = $('#levelSplash'), levelTitle = $('#levelTitle'), countdownE
 function setHudCollapsed(c){ hud.classList.toggle('hud--collapsed', c); }
 hudToggle.addEventListener('click', ()=> setHudCollapsed(!hud.classList.contains('hud--collapsed')));
 
-/* ========= État ========= */
+/* ========= Profil & Leaderboard (localStorage) ========= */
+const AVATARS = [
+  { id:'A', svg:`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="28" fill="#ffd166" stroke="#b76e00" stroke-width="3"/><circle cx="24" cy="28" r="4" fill="#2b1e17"/><circle cx="40" cy="28" r="4" fill="#2b1e17"/><path d="M22 40 q10 6 20 0" stroke="#2b1e17" stroke-width="4" fill="none" stroke-linecap="round"/></svg>` },
+  { id:'B', svg:`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="10" width="44" height="44" rx="10" fill="#8ecae6" stroke="#2b7085" stroke-width="3"/><circle cx="24" cy="28" r="4" fill="#2b1e17"/><circle cx="40" cy="28" r="4" fill="#2b1e17"/><path d="M20 42 q12 -6 24 0" stroke="#2b1e17" stroke-width="4" fill="none" stroke-linecap="round"/></svg>` },
+  { id:'C', svg:`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="36" r="22" fill="#06d6a0" stroke="#067a62" stroke-width="3"/><path d="M18 20 l14 -10 l14 10" stroke="#067a62" stroke-width="4" fill="#06d6a0"/><circle cx="24" cy="34" r="4" fill="#2b1e17"/><circle cx="40" cy="34" r="4" fill="#2b1e17"/><path d="M22 46 q10 5 20 0" stroke="#2b1e17" stroke-width="4" fill="none" stroke-linecap="round"/></svg>` },
+  { id:'D', svg:`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="28" fill="#ffb703" stroke="#b76e00" stroke-width="3"/><path d="M16 20 q16 -10 32 0" stroke="#b76e00" stroke-width="4" fill="none"/><circle cx="24" cy="32" r="4" fill="#2b1e17"/><circle cx="40" cy="32" r="4" fill="#2b1e17"/><path d="M22 42 q10 8 20 0" stroke="#2b1e17" stroke-width="4" fill="none" stroke-linecap="round"/></svg>` },
+];
+
+const LS_CUR = 'LM_CUR_USER';
+const LS_BOARD = 'LM_LEADERBOARD';
+
+function getCurrentUser(){ try{ return JSON.parse(localStorage.getItem(LS_CUR)) || null; }catch{ return null; } }
+function setCurrentUser(u){ localStorage.setItem(LS_CUR, JSON.stringify(u)); }
+function getBoard(){ try{ return JSON.parse(localStorage.getItem(LS_BOARD)) || []; }catch{ return []; } }
+function setBoard(b){ localStorage.setItem(LS_BOARD, JSON.stringify(b)); }
+function upsertBoardEntry(name, avatar, score, lastGame){
+  const board = getBoard();
+  const i = board.findIndex(x=>x.name===name);
+  if(i>=0){
+    board[i].bestScore = Math.max(board[i].bestScore||0, score);
+    board[i].avatar = avatar;
+    board[i].lastGame = lastGame;
+  }else{
+    board.push({name, avatar, bestScore:score, lastGame});
+  }
+  // tri desc
+  board.sort((a,b)=> (b.bestScore||0) - (a.bestScore||0));
+  setBoard(board);
+}
+function renderTop3(){
+  const list = document.getElementById('top3'); list.innerHTML='';
+  const board = getBoard().slice(0,3);
+  if(board.length===0){ list.innerHTML = '<li>Aucun score… à toi de jouer !</li>'; return; }
+  board.forEach(e=>{
+    const li=document.createElement('li');
+    li.innerHTML = `<span class="mini-row"><span class="mini-avatar">${e.avatar||'?'}</span> <strong>${e.name}</strong> — ${e.bestScore||0} pts</span>`;
+    list.appendChild(li);
+  });
+}
+function buildAvatarGrid(){
+  const grid = document.getElementById('avatarGrid'); grid.innerHTML='';
+  AVATARS.forEach(a=>{
+    const div = document.createElement('div'); div.className='avatar'; div.dataset.id=a.id; div.title=`Avatar ${a.id}`;
+    div.innerHTML = a.svg;
+    div.addEventListener('click', ()=>{
+      [...grid.children].forEach(c=>c.classList.remove('selected'));
+      div.classList.add('selected'); document.getElementById('introStart').disabled = !document.getElementById('playerName').value.trim();
+    });
+    grid.appendChild(div);
+  });
+  // présélection 1er
+  if(grid.firstChild) grid.firstChild.classList.add('selected');
+}
+
+function ensureProfileUI(){
+  const nameInput = document.getElementById('playerName');
+  const playBtn = document.getElementById('introStart');
+  const cur = getCurrentUser();
+  if(cur){ nameInput.value = cur.name; playBtn.disabled = false; }
+  nameInput.addEventListener('input', ()=>{ playBtn.disabled = nameInput.value.trim()===''; });
+  buildAvatarGrid(); renderTop3();
+}
+
+document.getElementById('resetScores').addEventListener('click', ()=>{
+  if(confirm('Réinitialiser le leaderboard local ?')){ localStorage.removeItem(LS_BOARD); renderTop3(); }
+});
+
+/* ========= État du jeu ========= */
 let items=[], nextSpawnAt=0, raf=null, tPrev=0, timerId=null, levelIndex=0;
 let caught=0, score=0, timeLeft=20, multiplier=1, multTimeout=null;
 let misses=0, missCap=0, streak=0, combo=1, maxCombo=1, lastWaveT=0;
-let running=false;
+let running=false, levelStartMs=0;
 
 /* Gnome */
 const basketW=120, basketH=140;
@@ -300,80 +328,92 @@ const LEVELS = [
   { target:20, duration:20, baseSpeed:250, gravity:360, spawnMin:420, spawnMax:620, waveEvery:5000, waveBoost:-260, maxSimultaneous:7, missLimit:4, weights:{ mirabelle:0.66, rotten:0.16, gnome:0.06, jar:0.12 }, comboUp:3, comboCap:6, jarDuration:6000 }
 ];
 
-/* ========= Démarrage ========= */
-$('#introStart').onclick = () => { initAudio(); resumeAudio(); startLevel(0); };
+/* ========= Démarrage / boutons ========= */
+$('#introStart').onclick = () => {
+  initAudio(); resumeAudio();
+  // créer/mettre à jour le profil courant
+  const name = document.getElementById('playerName').value.trim().slice(0,16);
+  const sel = document.querySelector('.avatar.selected'); const avatar = sel ? sel.dataset.id : 'A';
+  const cur = { name, avatar, bestScore: (getBoard().find(b=>b.name===name)?.bestScore)||0, lastGame:null };
+  setCurrentUser(cur);
+  renderTop3();
+  startLevel(0);
+};
 btnStart.onclick        = () => { initAudio(); resumeAudio(); startLevel(levelIndex); };
 $('#nextLevel').onclick = () => { initAudio(); resumeAudio(); startLevel(levelIndex+1); };
 $('#replayLevel').onclick=() => { initAudio(); resumeAudio(); startLevel(levelIndex); };
 $('#retry').onclick     = () => { initAudio(); resumeAudio(); startLevel(levelIndex); };
-$('#quit').onclick      = () => { gameover.style.display='none'; intro.style.display='grid'; };
+$('#quit').onclick      = () => { gameover.style.display='none'; intro.style.display='grid'; ensureProfileUI(); };
 
+/* ========= Lancement d’un niveau ========= */
 function startLevel(i){
-  if(i >= LEVELS.length){ between.style.display='none'; intro.style.display='grid'; betweenTitle.textContent='Champion·ne de la confiture !'; return; }
+  if(i >= LEVELS.length){
+    between.style.display='none'; intro.style.display='grid'; betweenTitle.textContent='Champion·ne de la confiture !';
+    ensureProfileUI(); return;
+  }
   levelIndex=i;
   const L = LEVELS[i];
 
-  // Reset état
   intro.style.display='none'; between.style.display='none'; gameover.style.display='none';
   items.forEach(el=>el.node.remove()); items=[];
   nextSpawnAt=0; lastWaveT=0; caught=0; timeLeft=L.duration; multiplier=1; clearTimeout(multTimeout);
   misses=0; missCap=L.missLimit; streak=0; combo=1; maxCombo=1;
 
-  // HUD
   scoreEl.textContent=score; progressEl.textContent=caught; targetEl.textContent=L.target; timeEl.textContent=timeLeft;
 
-  // Afficher splash + décompte
   showCountdown(i+1, ()=> beginGameplay());
 }
-
 function beginGameplay(){
   const L = LEVELS[levelIndex];
-
-  // HUD: auto-compact mobile, ouvert desktop
-  if (window.matchMedia('(min-width: 769px)').matches){ setHudCollapsed(false); }
-  else { setHudCollapsed(true); }
-
-  // Timer
+  if (window.matchMedia('(min-width: 769px)').matches){ setHudCollapsed(false); } else { setHudCollapsed(true); }
   clearInterval(timerId);
   timerId = setInterval(()=>{ if(!running) return; timeLeft--; timeEl.textContent=timeLeft; if(timeLeft<=0){ running=false; finish(false); } },1000);
-
-  // Loop
-  running=true; cancelAnimationFrame(raf); tPrev=now(); raf=requestAnimationFrame(tick);
+  running=true; cancelAnimationFrame(raf); tPrev=now(); levelStartMs = performance.now(); raf=requestAnimationFrame(tick);
 }
-
 function showCountdown(levelNum, onDone){
   levelTitle.textContent = `Niveau ${levelNum}`;
-  levelSplash.style.display='grid';
-  let n=3; countdownEl.textContent=n;
-  sfx('tick');
+  levelSplash.style.display='grid'; let n=3; countdownEl.textContent=n; sfx('tick');
   const id = setInterval(()=>{
     n--;
     if(n>0){ countdownEl.textContent=n; countdownEl.style.animation='none'; void countdownEl.offsetWidth; countdownEl.style.animation='pop .25s ease'; sfx('tick'); }
-    else{
-      clearInterval(id);
-      countdownEl.textContent='GO!'; countdownEl.style.animation='pop .25s ease';
-      sfx('go');
-      setTimeout(()=>{ levelSplash.style.display='none'; onDone&&onDone(); }, 400);
-    }
+    else{ clearInterval(id); countdownEl.textContent='GO!'; countdownEl.style.animation='pop .25s ease'; sfx('go'); setTimeout(()=>{ levelSplash.style.display='none'; onDone&&onDone(); }, 420); }
   }, 800);
 }
 
-/* ========= Fin de niveau ========= */
+/* ========= Fin de niveau + Leaderboard ========= */
 function finish(win){
   running=false;
   clearInterval(timerId); cancelAnimationFrame(raf); clearTimeout(multTimeout);
   items.forEach(el=>el.node.remove()); items=[]; nextSpawnAt=Number.POSITIVE_INFINITY;
 
+  // stats de la manche
+  const L = LEVELS[levelIndex];
+  const elapsedMs = performance.now() - levelStartMs;
+  const used = Math.min(L.duration, Math.round(elapsedMs/1000)); // s
+  const usedStr = mmss(used*1000);
+
+  // Mise à jour profil & leaderboard
+  const cur = getCurrentUser();
+  if(cur){
+    const lastGame = { date: new Date().toISOString(), level: levelIndex+1, score, caught, target:L.target, timeUsedSec: used, misses, bestCombo:maxCombo };
+    cur.bestScore = Math.max(cur.bestScore||0, score);
+    cur.lastGame = lastGame;
+    setCurrentUser(cur);
+    upsertBoardEntry(cur.name, cur.avatar, cur.bestScore, lastGame);
+    renderTop3();
+  }
+
   if(win){
-    const L = LEVELS[levelIndex];
     betweenTitle.textContent = (levelIndex < LEVELS.length-1) ? 'Bravo !' : 'Grand·e Maître des Fruits 👑';
     betweenMsg.textContent = (levelIndex < LEVELS.length-1) ? `Cap sur le niveau ${levelIndex+2} ?` : `Score final : ${score}`;
-    recapEl.innerHTML = `Ratés : <strong>${misses}</strong> &nbsp;•&nbsp; Meilleur combo : <strong>x${maxCombo}</strong>`;
+    recapEl.innerHTML =
+      `Récoltés : <strong>${caught}</strong> / ${L.target} &nbsp;•&nbsp; Temps : <strong>${usedStr}</strong><br>
+       Ratés : <strong>${misses}</strong> &nbsp;•&nbsp; Meilleur combo : <strong>x${maxCombo}</strong> &nbsp;•&nbsp; Score total : <strong>${score}</strong>`;
     between.style.display='grid';
     if(levelIndex >= LEVELS.length-1){ $('#nextLevel').style.display='none'; setTimeout(()=>$('#nextLevel').style.display='',10); }
   }else{
     overTitle.textContent='Oups… Temps écoulé !';
-    overMsg.textContent=`Récolte : ${caught}/${LEVELS[levelIndex].target} — Score : ${score}`;
+    overMsg.textContent=`Récolte : ${caught}/${L.target} — Temps : ${usedStr} — Score : ${score}`;
     gameover.style.display='grid';
   }
 }
@@ -381,8 +421,7 @@ function finish(win){
 /* ========= Boucle jeu ========= */
 function tick(ts){
   if (!running) return;
-  const L = LEVELS[levelIndex];
-  const dt = (ts - tPrev)/1000; tPrev = ts;
+  const L = LEVELS[levelIndex]; const dt = (ts - tPrev)/1000; tPrev = ts;
 
   if (ts >= nextSpawnAt && items.length < L.maxSimultaneous) {
     spawnOne();
@@ -444,23 +483,14 @@ function catchItem(it){
 
   if (it.type==='mirabelle'){
     caught++; progressEl.textContent=caught;
-    streak++;
-    if (streak % L.comboUp === 0 && combo < L.comboCap){ combo++; maxCombo=Math.max(maxCombo,combo); floatLabel(cx, cy-10, 'COMBO ↑', true); }
+    streak++; if (streak % L.comboUp === 0 && combo < L.comboCap){ combo++; maxCombo=Math.max(maxCombo,combo); floatLabel(cx, cy-10, 'COMBO ↑', true); }
     const pts = 1 * (multiplier||1) * combo; score += pts; scoreEl.textContent=score; floatLabel(cx,cy,`+${pts}`,true); burst(cx,cy); sfx('ok');
     if (caught >= L.target){ finish(true); }
     return;
   }
-  if (it.type==='rotten'){
-    score=Math.max(0,score-3); scoreEl.textContent=score; streak=0; combo=1; floatLabel(cx,cy,'−3 🍔',false); sfx('bad'); return;
-  }
-  if (it.type==='gnome'){
-    const pts=5*(multiplier||1)*combo; score+=pts; scoreEl.textContent=score; floatLabel(cx,cy,`+${pts} 🍄`,true); burst(cx,cy,['#ef476f','#ffd166','#06d6a0','#118ab2']); sfx('bonus'); return;
-  }
-  if (it.type==='jar'){
-    multiplier=2; floatLabel(cx,cy,'x2 🍯',true); sfx('power');
-    clearTimeout(multTimeout);
-    multTimeout=setTimeout(()=>{ multiplier=1; }, L.jarDuration);
-  }
+  if (it.type==='rotten'){ score=Math.max(0,score-3); scoreEl.textContent=score; streak=0; combo=1; floatLabel(cx,cy,'−3 🍔',false); sfx('bad'); return; }
+  if (it.type==='gnome'){ const pts=5*(multiplier||1)*combo; score+=pts; scoreEl.textContent=score; floatLabel(cx,cy,`+${pts} 🍄`,true); burst(cx,cy,['#ef476f','#ffd166','#06d6a0','#118ab2']); sfx('bonus'); return; }
+  if (it.type==='jar'){ multiplier=2; floatLabel(cx,cy,'x2 🍯',true); sfx('power'); clearTimeout(multTimeout); multTimeout=setTimeout(()=>{ multiplier=1; }, L.jarDuration); }
 }
 
 /* ========= Contrôles gnome ========= */
@@ -474,7 +504,8 @@ document.addEventListener('mousemove', e=> setBasket(e.clientX));
 document.addEventListener('touchmove', e=> { const t=e.touches[0]; setBasket(t.clientX); }, {passive:true});
 
 /* ========= Démarrage ========= */
-document.getElementById('intro').style.display='grid';
+intro.style.display='grid';
+ensureProfileUI();
 </script>
 
 <!-- Script ralenti vidéo -->
