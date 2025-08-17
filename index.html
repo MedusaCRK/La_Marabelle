@@ -77,7 +77,7 @@
   .avatar-grid{ display:grid; grid-template-columns:repeat(4, minmax(64px,1fr)); gap:10px; margin:10px 0 4px; }
   .avatar{ border:2px solid #e9d9b7; border-radius:14px; padding:6px; cursor:pointer; background:#fff; box-shadow:var(--shadow); position:relative; display:grid; place-items:center; }
   .avatar.selected{ outline:3px solid var(--accent); border-color:var(--accent2); }
-  .avatar img{ width:72px; height:72px; object-fit:contain; display:block; }
+  .avatar img{ width:100%; height:100%; object-fit:contain; display:block; }
   .name-row{ display:flex; gap:10px; align-items:center; margin:8px 0 4px; }
   .name-row input{ flex:1; padding:10px 12px; border-radius:10px; border:1px solid #e9d9b7; font-weight:700; }
   .mini-board{ background:#fff; border:1px solid #f0e0c8; border-radius:12px; padding:10px; box-shadow:var(--shadow); margin-top:12px; text-align:left; }
@@ -168,6 +168,8 @@
       <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap">
         <button class="btn" id="nextLevel">Niveau suivant</button>
         <button class="btn ghost" id="replayLevel">Rejouer ce niveau</button>
+        <!-- NOUVEAU BOUTON -->
+        <button class="btn ghost" id="backToMenu">Retour au menu</button>
       </div>
     </div>
   </div>
@@ -183,6 +185,7 @@
       </div>
     </div>
   </div>
+</div>
 
 <!-- Supabase CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -435,6 +438,18 @@ document.getElementById('replayLevel').onclick=() => { initAudio(); resumeAudio(
 document.getElementById('retry').onclick     = () => { initAudio(); resumeAudio(); startLevel(levelIndex, true); };
 document.getElementById('quit').onclick      = () => { gameover.style.display='none'; intro.style.display='grid'; ensureProfileUI(); };
 
+/* NOUVEAU: Retour au menu depuis l'écran de fin */
+document.getElementById('backToMenu').onclick = () => {
+  // Sécurité : stoppe toute boucle/chrono si besoin
+  running = false;
+  clearInterval(timerId); cancelAnimationFrame(raf); clearTimeout(multTimeout);
+  items.forEach(el=>el.node.remove()); items=[]; nextSpawnAt=0;
+
+  between.style.display='none';
+  intro.style.display='grid';
+  ensureProfileUI();
+};
+
 /* ========= Lancement d’un niveau ========= */
 function startLevel(i, freshRun=false){
   if(i >= LEVELS.length){
@@ -448,7 +463,7 @@ function startLevel(i, freshRun=false){
   items.forEach(el=>el.node.remove()); items=[];
   nextSpawnAt=0; lastWaveT=0; caught=0; misses=0; streak=0; combo=1; maxCombo=1; multiplier=1; clearTimeout(multTimeout);
   timeLeft=L.duration;
-  score=0; scoreEl.textContent=score; // <-- score remis à zéro à chaque lancement de niveau
+  score=0; scoreEl.textContent=score; // score remis à zéro à chaque lancement de niveau
 
   intro.style.display='none'; between.style.display='none'; gameover.style.display='none';
 
