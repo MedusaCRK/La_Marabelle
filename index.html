@@ -28,12 +28,27 @@
   /* Conteneur jeu */
   #game {position:relative; width:100vw; height:100vh; overflow:hidden;}
 
-  /* HUD */
-  .hud{ position:absolute; top:10px; left:10px; right:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; z-index:5; }
-  .pill{ background:var(--card); border:1px solid #f0e0c8; padding:8px 12px; border-radius:999px; box-shadow:var(--shadow); font-weight:700; backdrop-filter:saturate(1.2) blur(2px); }
+  /* HUD (nouvelle version compacte) */
+  .hud{ position:absolute; top:10px; left:10px; right:10px; display:flex; gap:8px; align-items:center; z-index:5; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .hud .chip{
+    background:var(--card); border:1px solid #f0e0c8; border-radius:999px;
+    padding:8px 12px; box-shadow:var(--shadow); font-weight:700; white-space:nowrap; display:flex; gap:.45rem; align-items:center;
+  }
+  .hud .hud-toggle{
+    appearance:none; border:1px solid #f0e0c8; background:#fff; box-shadow:var(--shadow);
+    border-radius:10px; padding:8px 10px; font-weight:800; cursor:pointer;
+  }
   .spacer{ flex:1 }
   .btn{ appearance:none; border:0; background:var(--accent2); color:#fff; padding:10px 14px; border-radius:12px; font-weight:800; box-shadow:0 10px 18px rgba(251,133,0,.25); cursor:pointer; }
   .btn.ghost{ background:#fff; color:var(--ink); border:1px solid #f0e0c8; }
+
+  /* État compact : cache les libellés et réduit la densité */
+  .hud.hud--collapsed .lbl{ display:none; }
+  .hud.hud--collapsed .chip{ padding:6px 10px; font-weight:800; }
+  .hud.hud--collapsed #btnStart{
+    position:fixed; left:50%; bottom:16px; transform:translateX(-50%);
+    z-index:7;
+  }
 
   /* GNOME (remplace le panier) */
   #basket{
@@ -60,8 +75,12 @@
   .panel{ background:var(--card); border:1px solid #f0e0c8; border-radius:18px; box-shadow:var(--shadow); padding:20px; max-width:520px; }
   .panel h2{ margin:6px 0 8px } .panel p{ margin:0 0 12px }
 
-  <style>
-  </style>
+  /* Mobile */
+  @media (max-width: 480px){
+    .hud .chip{ padding:6px 10px; font-size:14px; }
+    .btn{ padding:10px 14px; font-size:15px; }
+    .hud .hud-toggle{ padding:6px 8px; }
+  }
 
   .credit{ position:absolute; bottom:8px; right:12px; font-size:.85rem; opacity:.8; text-shadow:0 1px 2px rgba(255,255,255,.6) }
 </style>
@@ -74,14 +93,17 @@
 <div class="videoOverlay"></div>
 
 <div id="game">
-  <!-- HUD -->
-  <div class="hud">
-    <div class="pill">Niveau : <span id="level">1</span>/3</div>
-    <div class="pill">Objectif : <span id="progress">0</span>/<span id="target">10</span></div>
-    <div class="pill">Score : <span id="score">0</span></div>
-    <div class="pill">Ratés : <span id="miss">0</span>/<span id="missMax">0</span></div>
-    <div class="pill">Combo : <span id="combo">x1</span></div>
-    <div class="pill">Temps : <span id="time">20</span>s</div>
+  <!-- HUD (remplacée) -->
+  <div class="hud hud--collapsed" id="hud">
+    <button class="hud-toggle" id="hudToggle" aria-label="Afficher/masquer les libellés">☰</button>
+
+    <div class="chip"><span class="lbl">Niveau</span><span class="val"><span id="level">1</span>/3</span></div>
+    <div class="chip"><span class="lbl">Objectif</span><span class="val"><span id="progress">0</span>/<span id="target">10</span></span></div>
+    <div class="chip"><span class="lbl">Score</span><span class="val" id="score">0</span></div>
+    <div class="chip"><span class="lbl">Ratés</span><span class="val"><span id="miss">0</span>/<span id="missMax">0</span></span></div>
+    <div class="chip"><span class="lbl">Combo</span><span class="val" id="combo">x1</span></div>
+    <div class="chip"><span class="lbl">Temps</span><span class="val"><span id="time">20</span>s</span></div>
+
     <div class="spacer"></div>
     <button id="btnStart" class="btn">Démarrer</button>
   </div>
@@ -191,8 +213,7 @@ function floatLabel(x,y,text,good=true){
 
 /* ========= Audio SFX (WebAudio, avec boost & limiteur) ========= */
 let AC=null, master=null, comp=null;
-// <<< AJUSTE ICI le volume global (0.0 à ~2.0) :
-const MASTER_VOLUME = 0.55;
+const MASTER_VOLUME = 0.55; // volume global (0..2)
 
 function initAudio(){
   if(AC) return;
@@ -200,30 +221,20 @@ function initAudio(){
   if(!Ctx) return;
   AC = new Ctx();
 
-  // Chaîne: sources -> master (gain) -> compresseur -> destination
   master = AC.createGain();
   comp = AC.createDynamicsCompressor();
-  comp.threshold.value = -12; // limiteur doux
-  comp.knee.value = 20;
-  comp.ratio.value = 6;
-  comp.attack.value = 0.003;
-  comp.release.value = 0.25;
+  comp.threshold.value = -12; comp.knee.value = 20; comp.ratio.value = 6;
+  comp.attack.value = 0.003; comp.release.value = 0.25;
 
-  // Volume global + override via ?vol=...
   let vol = MASTER_VOLUME;
   const qp = new URLSearchParams(location.search);
   const v = parseFloat(qp.get('vol'));
   if(!Number.isNaN(v)) vol = Math.max(0, Math.min(2, v));
   master.gain.value = vol;
 
-  master.connect(comp);
-  comp.connect(AC.destination);
+  master.connect(comp); comp.connect(AC.destination);
 }
 function resumeAudio(){ if(AC && AC.state==='suspended') AC.resume(); }
-function setMasterVolume(v){
-  if(!master) return;
-  master.gain.value = Math.max(0, Math.min(2, v));
-}
 function vibrate(ms){ if(navigator.vibrate) navigator.vibrate(ms); }
 
 function tone({freq=440, freq2=null, dur=0.12, type='sine', attack=0.005, release=0.08, vol=0.8, when=0}){
@@ -231,8 +242,7 @@ function tone({freq=440, freq2=null, dur=0.12, type='sine', attack=0.005, releas
   const t = AC.currentTime + when;
   const o = AC.createOscillator();
   const g = AC.createGain();
-  o.type = type;
-  o.frequency.setValueAtTime(freq, t);
+  o.type = type; o.frequency.setValueAtTime(freq, t);
   if(freq2){ o.frequency.exponentialRampToValueAtTime(freq2, t+dur*0.9); }
   g.gain.setValueAtTime(0, t);
   g.gain.linearRampToValueAtTime(vol, t+attack);
@@ -254,29 +264,23 @@ function noise({dur=0.05, vol=0.5, when=0}){
 function sfx(kind){
   if(!AC) return;
   switch(kind){
-    case 'ok': // fruit
-      tone({freq:660,freq2:880,dur:0.10,type:'triangle',vol:0.9});
-      break;
-    case 'bad': // fast-food
-      tone({freq:220,freq2:120,dur:0.22,type:'sawtooth',vol:1.0});
-      break;
-    case 'bonus': // gnome (3 notes rapides)
+    case 'ok': tone({freq:660,freq2:880,dur:0.10,type:'triangle',vol:0.9}); break;
+    case 'bad': tone({freq:220,freq2:120,dur:0.22,type:'sawtooth',vol:1.0}); break;
+    case 'bonus':
       tone({freq:784,dur:0.07,type:'square',vol:0.8});
       tone({freq:988,dur:0.07,type:'square',vol:0.75, when:0.08});
       tone({freq:1175,dur:0.09,type:'square',vol:0.75, when:0.16});
       break;
-    case 'power': // pot x2 (glissando montant)
+    case 'power':
       tone({freq:650,freq2:980,dur:0.18,type:'sine',vol:0.9});
       tone({freq:980,freq2:1300,dur:0.16,type:'sine',vol:0.8, when:0.12});
       break;
-    case 'miss': // raté
+    case 'miss':
       tone({freq:1500,dur:0.04,type:'square',vol:0.5});
       noise({dur:0.03,vol:0.25,when:0.02});
       break;
   }
 }
-
-/* Débloquer l'audio sur interaction utilisateur */
 ['click','touchstart'].forEach(ev=>{
   document.addEventListener(ev, ()=>{ if(!AC){ initAudio(); } else { resumeAudio(); } }, {once:true, passive:true});
 });
@@ -304,6 +308,16 @@ const levelLabel = $('#level'), progressEl = $('#progress'), targetEl = $('#targ
 const scoreEl = $('#score'), timeEl = $('#time');
 const missEl = $('#miss'), missMaxEl = $('#missMax'), comboEl = $('#combo');
 
+/* ========= HUD compacte : toggle & auto-compact ========= */
+const hud = document.getElementById('hud');
+const hudToggle = document.getElementById('hudToggle');
+let hudAutoTimer = null;
+
+function setHudCollapsed(collapsed){
+  hud.classList.toggle('hud--collapsed', collapsed);
+}
+hudToggle.addEventListener('click', ()=> setHudCollapsed(!hud.classList.contains('hud--collapsed')));
+
 /* ========= Overlays/Buttons ========= */
 const intro = $('#intro'), between = $('#between'), gameover = $('#gameover');
 const betweenTitle = $('#betweenTitle'), betweenMsg = $('#betweenMsg');
@@ -330,7 +344,7 @@ const basketW = 120, basketH = 140;
 let basketX = game.clientWidth/2 - basketW/2;
 let lastX = basketX;
 
-/* ========= Niveaux équilibrés façon catcher mobile ========= */
+/* ========= Niveaux équilibrés ========= */
 const LEVELS = [
   { target:10, duration:20, baseSpeed:140, gravity:280, spawnMin:620, spawnMax:820, waveEvery:6000, waveBoost:-220, maxSimultaneous:4, missLimit:5, weights:{ mirabelle:0.78, rotten:0.08, gnome:0.06, jar:0.08 }, comboUp:5, comboCap:4, jarDuration:5000 },
   { target:15, duration:20, baseSpeed:190, gravity:320, spawnMin:520, spawnMax:700, waveEvery:5500, waveBoost:-240, maxSimultaneous:6, missLimit:5, weights:{ mirabelle:0.72, rotten:0.12, gnome:0.06, jar:0.10 }, comboUp:4, comboCap:5, jarDuration:5000 },
@@ -360,6 +374,15 @@ function startLevel(i){
   timeEl.textContent = timeLeft; levelLabel.textContent = i+1;
   missEl.textContent = misses; missMaxEl.textContent = missCap;
   comboEl.textContent = 'x' + combo;
+
+  // Affichage HUD : desktop = ouvert / mobile = compact + auto-compact 2s
+  clearTimeout(hudAutoTimer);
+  if (window.matchMedia('(min-width: 769px)').matches){
+    setHudCollapsed(false);
+  } else {
+    setHudCollapsed(false); // montrer brièvement les libellés
+    hudAutoTimer = setTimeout(()=> setHudCollapsed(true), 2000);
+  }
 
   // Timer
   clearInterval(timerId);
@@ -496,7 +519,7 @@ function catchItem(it){
   if (it.type === 'mirabelle'){
     caught++; progressEl.textContent = caught;
 
-    // Combo (monte toutes les N prises d'affilée)
+    // Combo
     streak++;
     if (streak % L.comboUp === 0 && combo < L.comboCap) {
       combo++; comboEl.textContent = 'x' + (combo * (multiplier||1));
@@ -546,7 +569,7 @@ function catchItem(it){
   }
 }
 
-/* ========= Contrôles gnome (flip direction) ========= */
+/* ========= Contrôles gnome ========= */
 function clamp(v,min,max){ return v<min?min:(v>max?max:v); }
 function setBasket(x){
   const newX = clamp(x - basketW/2, 0, game.clientWidth - basketW);
