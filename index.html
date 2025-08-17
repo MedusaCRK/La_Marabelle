@@ -9,7 +9,6 @@
 <style>
   :root{ --ink:#2b1e17; --card:#ffffffea; --shadow:0 12px 30px rgba(0,0,0,.12);
          --accent:#ffb703; --accent2:#fb8500; --mint:#8ecae6;
-         /* ADAPT: unités viewport fiables sur mobile */
          --vh: 1vh; --vw: 1vw;
   }
   *{box-sizing:border-box}
@@ -17,9 +16,7 @@
   body{
     margin:0; font-family: ui-rounded, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
     color:var(--ink); overflow:hidden;
-    /* ADAPT: évite le zoom gestuel accidentel et les scrolls */
     touch-action: none;
-    /* ADAPT: safe area */
     padding: env(safe-area-inset-top) env(safe-area-inset-right)
              env(safe-area-inset-bottom) env(safe-area-inset-left);
     background:#fff9f4;
@@ -28,7 +25,6 @@
   #bgVideo{ position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; background:#fff9f4; }
   .videoOverlay{ position: fixed; inset:0; z-index:-1; background: radial-gradient(100% 60% at 50% 20%, rgba(255,255,255,.15), rgba(0,0,0,.20)); pointer-events:none; }
 
-  /* ADAPT: hauteur fiable basée sur --vh */
   #game {position:relative; width:100vw; height: calc(var(--vh, 1vh) * 100); overflow:hidden;}
 
   .hud{
@@ -46,13 +42,11 @@
   .hud.hud--collapsed .lbl{ display:none; }
   .hud.hud--collapsed .chip{ padding:6px 10px; font-weight:800; }
 
-  /* ADAPT: tailles dynamiques (JS ajuste width/height) */
   #basket{ position:absolute; bottom:8vh; left:50%; transform:translateX(-50%); width:120px; height:140px;
     background: url('Images/SVG/Gnome_Perso.svg') center bottom / contain no-repeat; border:none; box-shadow:none; transition: transform 80ms linear; }
   #basket.flipX{ transform: translateX(-50%) scaleX(-1); }
 
   .item{ position:absolute; width:58px; height:58px; will-change:transform; }
-  /* ADAPT: image s’étire sur la taille courante de .item (qui est recalculée) */
   .item img, .item svg{ width:100%; height:100%; display:block; filter: drop-shadow(0 6px 6px rgba(0,0,0,.22)); }
 
   .float{ position:absolute; pointer-events:none; font-weight:900; text-shadow:0 2px 0 rgba(0,0,0,.1); animation: floatUp .8s ease-out forwards; }
@@ -63,7 +57,6 @@
     position:absolute; inset:0; display:grid; place-items:center;
     background:rgba(255,249,244,.55); backdrop-filter: blur(2px);
     z-index:6; padding:20px; text-align:center;
-    /* ADAPT: safe area padding */
     padding-top: calc(20px + env(safe-area-inset-top));
     padding-bottom: calc(20px + env(safe-area-inset-bottom));
     padding-left: calc(20px + env(safe-area-inset-left));
@@ -81,7 +74,7 @@
   .avatar-grid{ display:grid; grid-template-columns:repeat(4, minmax(64px,1fr)); gap:10px; margin:10px 0 4px; }
   .avatar{ border:2px solid #e9d9b7; border-radius:14px; padding:6px; cursor:pointer; background:#fff; box-shadow:var(--shadow); position:relative; display:grid; place-items:center; }
   .avatar.selected{ outline:3px solid var(--accent); border-color:var(--accent2); }
-  .avatar img{ width:80%; height:80%; object-fit:contain; display:block; }
+  .avatar img{ width:80%; height:80%; object-fit:contain; display:block; }   /* <- fixe l’affichage mobile */
   .name-row{ display:flex; gap:10px; align-items:center; margin:8px 0 4px; }
   .name-row input{ flex:1; padding:10px 12px; border-radius:10px; border:1px solid #e9d9b7; font-weight:700; }
   .mini-board{ background:#fff; border:1px solid #f0e0c8; border-radius:12px; padding:10px; box-shadow:var(--shadow); margin-top:12px; text-align:left; }
@@ -93,7 +86,7 @@
     width:22px; height:22px; border-radius:6px; overflow:hidden;
     display:inline-grid; place-items:center; background:#fff; border:1px solid #f0e0c8;
   }
-  .mini-avatar img{ width:80%; height:80%; object-fit:contain; display:block; }
+  .mini-avatar img{ width:100%; height:100%; object-fit:contain; display:block; }
 
   @media (max-width: 480px){
     .hud .chip{ padding:6px 10px; font-size:14px; }
@@ -117,7 +110,6 @@
     <button class="hud-toggle" id="hudToggle" aria-label="Afficher/masquer les libellés">☰</button>
     <div class="chip"><span class="lbl">Objectif</span><span class="val"><span id="progress">0</span>/<span id="target">10</span></span></div>
     <div class="chip"><span class="lbl">Score</span><span class="val" id="score">0</span></div>
-    <div class="chip"><span class="lbl">Temps</span><span class="val"><span id="time">20</span>s</span></div>
     <div class="spacer"></div>
   </div>
 
@@ -179,7 +171,7 @@
   <div id="gameover" class="overlay" style="display:none">
     <div class="panel">
       <h2 id="overTitle">Oups…</h2>
-      <p id="overMsg">Tu feras mieux la prochaine fois !</p>
+      <p id="overMsg">Trop de fruits ratés !</p>
       <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap">
         <button class="btn" id="retry">Réessayer</button>
         <button class="btn ghost" id="quit">Quitter</button>
@@ -223,8 +215,6 @@ setFxSize();
 
 function rand(min,max){ return Math.random()*(max-min)+min; }
 function now(){ return performance.now(); }
-function pad2(n){ return n<10?'0'+n:''+n; }
-function mmss(ms){ const s=Math.max(0,Math.round(ms/1000)); const m=(s/60|0); return `${m}:${pad2(s%60)}`; }
 
 /* ========= FX visuels ========= */
 let particles = [], anim=null;
@@ -266,7 +256,7 @@ const FASTFOOD_FILES = ['Burger.svg','Frites.svg','Pizza.svg','Donut.svg','HotDo
 function fastFoodImgTag(){ const name = FASTFOOD_FILES[(Math.random()*FASTFOOD_FILES.length)|0]; const src='Images/SVG/'+encodeURIComponent(name); return `<img alt="junk" src="${src}" />`; }
 
 /* ========= UI Refs ========= */
-const progressEl = $('#progress'), targetEl = $('#target'), scoreEl = $('#score'), timeEl = $('#time');
+const progressEl = $('#progress'), targetEl = $('#target'), scoreEl = $('#score');
 const hud = document.getElementById('hud'); const hudToggle = document.getElementById('hudToggle');
 const intro = $('#intro'), between = $('#between'), gameover = $('#gameover');
 const betweenTitle = $('#betweenTitle'), betweenMsg = $('#betweenMsg'), recapEl = $('#recap');
@@ -279,8 +269,8 @@ function setHudCollapsed(c){ hud.classList.toggle('hud--collapsed', c); }
 hudToggle.addEventListener('click', ()=> setHudCollapsed(!hud.classList.contains('hud--collapsed')));
 
 /* ========= SUPABASE (temps réel) ========= */
-const SUPABASE_URL = 'https://gpkdtsxzgcqajdoxnllw.supabase.co';     // <— remplace si besoin
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdwa2R0c3h6Z2NxYWpkb3hubGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0MzIwMzAsImV4cCI6MjA3MTAwODAzMH0.mOgMv225hH4yX-0hm4jG-wOKdvKUtNpWNtjNEsTqOkM'; // <— remplace si besoin
+const SUPABASE_URL = 'https://gpkdtsxzgcqajdoxnllw.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdwa2R0c3h6Z2NxYWpkb3hubGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0MzIwMzAsImV4cCI6MjA3MTAwODAzMH0.mOgMv225hH4yX-0hm4jG-wOKdvKUtNpWNtjNEsTqOkM';
 let sb = null;
 try{
   if(SUPABASE_URL.startsWith('http') && SUPABASE_ANON_KEY.length>10){
@@ -296,8 +286,6 @@ async function sbUpsertPlayer({name, avatar, bestScore, lastGame}){
   }).select();
   if(error) console.warn('upsert error', error);
 }
-
-/* Récupère le meilleur score existant pour un pseudo (pour ne jamais descendre) */
 async function sbGetBestScoreByName(name){
   if(!sb) return 0;
   const { data, error } = await sb.from('leaderboard')
@@ -309,8 +297,8 @@ async function sbGetBestScoreByName(name){
   return data?.best_score || 0;
 }
 
-/* ========= Avatars (images jointes) ========= */
-const AVATAR_PATH = 'Images/SVG/'; // dossier où tu places Avatar_1.svg ... Avatar_4.svg
+/* ========= Avatars ========= */
+const AVATAR_PATH = 'Images/SVG/';
 const AVATARS = [
   { id:'1', src: AVATAR_PATH + 'Avatar_1.svg', label:'Avatar 1' },
   { id:'2', src: AVATAR_PATH + 'Avatar_2.svg', label:'Avatar 2' },
@@ -358,62 +346,38 @@ if(sb){
     .subscribe();
 }
 
-/* UI avatar */
-function buildAvatarGrid(){
-  const grid = document.getElementById('avatarGrid'); grid.innerHTML='';
-  AVATARS.forEach(a=>{
-    const div = document.createElement('div'); div.className='avatar'; div.dataset.id=a.id; div.title=a.label;
-    div.innerHTML = `<img src="${a.src}" alt="${a.label}" loading="lazy">`;
-    div.addEventListener('click', ()=>{
-      [...grid.children].forEach(c=>c.classList.remove('selected'));
-      div.classList.add('selected'); document.getElementById('introStart').disabled = !document.getElementById('playerName').value.trim();
-    });
-    grid.appendChild(div);
-  });
-  if(grid.firstChild) grid.firstChild.classList.add('selected');
-}
-function ensureProfileUI(){
-  const nameInput = document.getElementById('playerName');
-  const playBtn = document.getElementById('introStart');
-  const cur = getCurrentUser();
-  if(cur){ nameInput.value = cur.name; playBtn.disabled = false; }
-  nameInput.addEventListener('input', ()=>{ playBtn.disabled = nameInput.value.trim()===''; });
-  buildAvatarGrid(); renderTop3();
-}
-
 /* ========= État du jeu & ADAPT scale ========= */
-let items=[], nextSpawnAt=0, raf=null, tPrev=0, timerId=null, levelIndex=0;
-let caught=0, score=0, timeLeft=20, multiplier=1, multTimeout=null;
+let items=[], nextSpawnAt=0, raf=null, tPrev=0, levelIndex=0;
+let caught=0, score=0, multiplier=1, multTimeout=null;
 let misses=0, missCap=0, streak=0, combo=1, maxCombo=1, lastWaveT=0;
 let running=false, levelStartMs=0;
 
-/* ADAPT: dimensions basées sur un écran de référence 390×844 */
+/* anti-cumul sur REJOUER */
+let scoreBeforeLevel = 0;   // snapshot au premier lancement d’un niveau
+
+/* ADAPT: dimensions de référence 390×844 */
 const BASE_W = 390, BASE_H = 844;
-let SCALE = 1;
-let ITEM_SIZE = 58;         // sera recalculé
+let SCALE = 1, ITEM_SIZE = 58;
 let basketW = 120, basketH = 140;
 let basketX = 0, lastX = 0;
 
 function recalcScale(applyToExisting=false){
   const W = game.clientWidth, H = game.clientHeight;
   const s = Math.min(W/BASE_W, H/BASE_H);
-  SCALE = Math.max(.72, Math.min(1.6, s)); // garde des limites raisonnables
+  SCALE = Math.max(.72, Math.min(1.6, s));
   ITEM_SIZE = Math.round(58 * SCALE);
   basketW = Math.round(120 * SCALE);
   basketH = Math.round(140 * SCALE);
 
-  // Applique tailles
   basket.style.width = basketW + 'px';
   basket.style.height = basketH + 'px';
 
   if(applyToExisting){
-    // adapte les items visibles si on a redimensionné pendant le jeu
     for(const it of items){
       it.size = ITEM_SIZE;
       it.node.style.width = it.size + 'px';
       it.node.style.height = it.size + 'px';
     }
-    // recadre le panier
     setBasket(basketX + basketW/2);
   }
 }
@@ -421,9 +385,9 @@ recalcScale(false);
 
 /* Niveaux */
 const LEVELS = [
-  { target:10, duration:20, baseSpeed:140, gravity:280, spawnMin:620, spawnMax:820, waveEvery:6000, waveBoost:-220, maxSimultaneous:4, missLimit:5, weights:{ mirabelle:0.78, rotten:0.08, gnome:0.06, jar:0.08 }, comboUp:5, comboCap:4, jarDuration:5000 },
-  { target:15, duration:20, baseSpeed:190, gravity:320, spawnMin:520, spawnMax:700, waveEvery:5500, waveBoost:-240, maxSimultaneous:6, missLimit:5, weights:{ mirabelle:0.72, rotten:0.12, gnome:0.06, jar:0.10 }, comboUp:4, comboCap:5, jarDuration:5000 },
-  { target:20, duration:20, baseSpeed:250, gravity:360, spawnMin:420, spawnMax:620, waveEvery:5000, waveBoost:-260, maxSimultaneous:7, missLimit:4, weights:{ mirabelle:0.66, rotten:0.16, gnome:0.06, jar:0.12 }, comboUp:3, comboCap:6, jarDuration:6000 }
+  { target:10, baseSpeed:140, gravity:280, spawnMin:620, spawnMax:820, waveEvery:6000, waveBoost:-220, maxSimultaneous:4, missLimit:5, weights:{ mirabelle:0.78, rotten:0.08, gnome:0.06, jar:0.08 }, comboUp:5, comboCap:4, jarDuration:5000 },
+  { target:15, baseSpeed:190, gravity:320, spawnMin:520, spawnMax:700, waveEvery:5500, waveBoost:-240, maxSimultaneous:6, missLimit:5, weights:{ mirabelle:0.72, rotten:0.12, gnome:0.06, jar:0.10 }, comboUp:4, comboCap:5, jarDuration:5000 },
+  { target:20, baseSpeed:250, gravity:360, spawnMin:420, spawnMax:620, waveEvery:5000, waveBoost:-260, maxSimultaneous:7, missLimit:4, weights:{ mirabelle:0.66, rotten:0.16, gnome:0.06, jar:0.12 }, comboUp:3, comboCap:6, jarDuration:6000 }
 ];
 
 /* ========= Démarrage / boutons ========= */
@@ -441,17 +405,26 @@ document.getElementById('introStart').onclick = async () => {
   renderTop3();
 
   score = 0; scoreEl.textContent = '0';
-
-  startLevel(0);
+  startLevel(0);               // première partie → snapshot créé dans startLevel
 };
 
 document.getElementById('nextLevel').onclick = () => { initAudio(); resumeAudio(); startLevel(levelIndex+1); };
-document.getElementById('replayLevel').onclick=() => { initAudio(); resumeAudio(); startLevel(levelIndex); };
-document.getElementById('retry').onclick     = () => { initAudio(); resumeAudio(); startLevel(levelIndex); };
-document.getElementById('quit').onclick      = () => { gameover.style.display='none'; intro.style.display='grid'; ensureProfileUI(); };
+
+// IMPORTANT : rejouer = restaurer le score de départ du niveau
+document.getElementById('replayLevel').onclick = () => {
+  initAudio(); resumeAudio();
+  score = scoreBeforeLevel; scoreEl.textContent = score;
+  startLevel(levelIndex, true);  // true = mode replay (ne pas toucher au snapshot)
+};
+document.getElementById('retry').onclick = () => {
+  initAudio(); resumeAudio();
+  score = scoreBeforeLevel; scoreEl.textContent = score;
+  startLevel(levelIndex, true);
+};
+document.getElementById('quit').onclick = () => { gameover.style.display='none'; intro.style.display='grid'; ensureProfileUI(); };
 
 /* ========= Lancement d’un niveau ========= */
-function startLevel(i){
+function startLevel(i, isReplay = false){
   if(i >= LEVELS.length){
     between.style.display='none'; intro.style.display='grid'; betweenTitle.textContent='Champion·ne de la confiture !';
     ensureProfileUI(); return;
@@ -459,25 +432,24 @@ function startLevel(i){
   levelIndex=i;
   const L = LEVELS[i];
 
+  // snapshot score de départ du niveau (uniquement au 1er lancement)
+  if(!isReplay){ scoreBeforeLevel = score; }
+
   intro.style.display='none'; between.style.display='none'; gameover.style.display='none';
   items.forEach(el=>el.node.remove()); items=[];
-  nextSpawnAt=0; lastWaveT=0; caught=0; timeLeft=L.duration; multiplier=1; clearTimeout(multTimeout);
+  nextSpawnAt=0; lastWaveT=0; caught=0; multiplier=1; clearTimeout(multTimeout);
   misses=0; missCap=L.missLimit; streak=0; combo=1; maxCombo=1;
 
-  // ADAPT: recalcul à l’entrée du niveau (au cas où on a tourné l’écran)
   setViewportVars(); setFxSize(); recalcScale(false);
   basketX = game.clientWidth/2 - basketW/2; lastX = basketX;
   basket.style.left=(basketX + basketW/2)+'px';
 
-  scoreEl.textContent=score; progressEl.textContent=caught; targetEl.textContent=L.target; timeEl.textContent=timeLeft;
+  scoreEl.textContent=score; progressEl.textContent=caught; targetEl.textContent=L.target;
 
   showCountdown(i+1, ()=> beginGameplay());
 }
 function beginGameplay(){
-  const L = LEVELS[levelIndex];
   if (window.matchMedia('(min-width: 769px)').matches){ setHudCollapsed(false); } else { setHudCollapsed(true); }
-  clearInterval(timerId);
-  timerId = setInterval(()=>{ if(!running) return; timeLeft--; timeEl.textContent = timeLeft; if(timeLeft<=0){ running=false; finish(false); } },1000);
   running=true; cancelAnimationFrame(raf); tPrev=now(); levelStartMs = performance.now(); raf=requestAnimationFrame(tick);
 }
 function showCountdown(levelNum, onDone){
@@ -493,23 +465,19 @@ function showCountdown(levelNum, onDone){
 /* ========= Fin de niveau : envoi Supabase + récap ========= */
 async function finish(win){
   running=false;
-  clearInterval(timerId); cancelAnimationFrame(raf); clearTimeout(multTimeout);
+  cancelAnimationFrame(raf); clearTimeout(multTimeout);
   items.forEach(el=>el.node.remove()); items=[]; nextSpawnAt=Number.POSITIVE_INFINITY;
 
   const L = LEVELS[levelIndex];
-  const elapsedMs = performance.now() - levelStartMs;
-  const used = Math.min(L.duration, Math.round(elapsedMs/1000));
-  const usedStr = mmss(used*1000);
 
   const cur = getCurrentUser();
   if(cur){
-    const lastGame = { date: new Date().toISOString(), level: levelIndex+1, score, caught, target:L.target, timeUsedSec: used, misses, bestCombo:maxCombo };
+    const lastGame = { date: new Date().toISOString(), level: levelIndex+1, score, caught, target:L.target, misses, bestCombo:maxCombo };
 
     const cloudBest = await sbGetBestScoreByName(cur.name);
     const bestScore = Math.max(cloudBest||0, cur.bestScore||0, score);
 
     setCurrentUser({ ...cur, bestScore, lastGame });
-
     await sbUpsertPlayer({ name: cur.name, avatar: cur.avatar, bestScore, lastGame });
     sbFetchTop3();
   }
@@ -518,13 +486,15 @@ async function finish(win){
     betweenTitle.textContent = (levelIndex < LEVELS.length-1) ? 'Bravo !' : 'Grand·e Maître des Fruits 👑';
     betweenMsg.textContent = (levelIndex < LEVELS.length-1) ? `Cap sur le niveau ${levelIndex+2} ?` : `Score final : ${score}`;
     recapEl.innerHTML =
-      `Récoltés : <strong>${caught}</strong> / ${L.target} &nbsp;•&nbsp; Temps : <strong>${usedStr}</strong><br>
-       Ratés : <strong>${misses}</strong> &nbsp;•&nbsp; Meilleur combo : <strong>x${maxCombo}</strong> &nbsp;•&nbsp; Score total : <strong>${score}</strong>`;
+      `Récoltés : <strong>${caught}</strong> / ${L.target}
+       &nbsp;•&nbsp; Ratés : <strong>${misses}</strong>
+       &nbsp;•&nbsp; Meilleur combo : <strong>x${maxCombo}</strong>
+       &nbsp;•&nbsp; Score total : <strong>${score}</strong>`;
     between.style.display='grid';
     if(levelIndex >= LEVELS.length-1){ document.getElementById('nextLevel').style.display='none'; setTimeout(()=>document.getElementById('nextLevel').style.display='',10); }
   }else{
-    overTitle.textContent='Oups… Temps écoulé !';
-    overMsg.textContent=`Récolte : ${caught}/${L.target} — Temps : ${usedStr} — Score : ${score}`;
+    overTitle.textContent='Oups…';
+    overMsg.textContent=`Trop de fruits ratés — Récolte : ${caught}/${L.target} — Score : ${score}`;
     gameover.style.display='grid';
   }
 }
@@ -619,7 +589,28 @@ function setBasket(x){
 document.addEventListener('mousemove', e=> setBasket(e.clientX), {passive:true});
 document.addEventListener('touchmove', e=> { const t=e.touches[0]; setBasket(t.clientX); }, {passive:true});
 
-/* ========= Démarrage ========= */
+/* ========= Intro ========= */
+function buildAvatarGrid(){
+  const grid = document.getElementById('avatarGrid'); grid.innerHTML='';
+  AVATARS.forEach(a=>{
+    const div = document.createElement('div'); div.className='avatar'; div.dataset.id=a.id; div.title=a.label;
+    div.innerHTML = `<img src="${a.src}" alt="${a.label}" loading="lazy">`;
+    div.addEventListener('click', ()=>{
+      [...grid.children].forEach(c=>c.classList.remove('selected'));
+      div.classList.add('selected'); document.getElementById('introStart').disabled = !document.getElementById('playerName').value.trim();
+    });
+    grid.appendChild(div);
+  });
+  if(grid.firstChild) grid.firstChild.classList.add('selected');
+}
+function ensureProfileUI(){
+  const nameInput = document.getElementById('playerName');
+  const playBtn = document.getElementById('introStart');
+  const cur = getCurrentUser();
+  if(cur){ nameInput.value = cur.name; playBtn.disabled = false; }
+  nameInput.addEventListener('input', ()=>{ playBtn.disabled = nameInput.value.trim()===''; });
+  buildAvatarGrid(); renderTop3();
+}
 intro.style.display='grid';
 ensureProfileUI();
 </script>
