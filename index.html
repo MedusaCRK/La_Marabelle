@@ -2,22 +2,41 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- ADAPT: viewport mobile & safe area -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>La Marabelle — Panier à Mirabelles (Vidéo + Niveaux)</title>
 <meta name="description" content="Attrape les fruits ! 3 niveaux, gnome, pot de confiture, fast-food malus, fond vidéo, profils et leaderboard.">
 <style>
   :root{ --ink:#2b1e17; --card:#ffffffea; --shadow:0 12px 30px rgba(0,0,0,.12);
-         --accent:#ffb703; --accent2:#fb8500; --mint:#8ecae6; }
+         --accent:#ffb703; --accent2:#fb8500; --mint:#8ecae6;
+         /* ADAPT: unités viewport fiables sur mobile */
+         --vh: 1vh; --vw: 1vw;
+  }
   *{box-sizing:border-box}
   html,body{height:100%}
-  body{ margin:0; font-family: ui-rounded, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; color:var(--ink); overflow:hidden; }
+  body{
+    margin:0; font-family: ui-rounded, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    color:var(--ink); overflow:hidden;
+    /* ADAPT: évite le zoom gestuel accidentel et les scrolls */
+    touch-action: none;
+    /* ADAPT: safe area */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
+    background:#fff9f4;
+  }
 
   #bgVideo{ position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; background:#fff9f4; }
   .videoOverlay{ position: fixed; inset:0; z-index:-1; background: radial-gradient(100% 60% at 50% 20%, rgba(255,255,255,.15), rgba(0,0,0,.20)); pointer-events:none; }
 
-  #game {position:relative; width:100vw; height:100vh; overflow:hidden;}
+  /* ADAPT: hauteur fiable basée sur --vh */
+  #game {position:relative; width:100vw; height: calc(var(--vh, 1vh) * 100); overflow:hidden;}
 
-  .hud{ position:absolute; top:10px; left:10px; right:10px; display:flex; gap:8px; align-items:center; z-index:5; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .hud{
+    position:absolute; top: max(10px, env(safe-area-inset-top));
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
+    display:flex; gap:8px; align-items:center; z-index:5; overflow-x:auto; -webkit-overflow-scrolling:touch;
+  }
   .hud .chip{ background:var(--card); border:1px solid #f0e0c8; border-radius:999px; padding:8px 12px; box-shadow:var(--shadow); font-weight:700; white-space:nowrap; display:flex; gap:.45rem; align-items:center; }
   .hud .hud-toggle{ appearance:none; border:1px solid #f0e0c8; background:#fff; box-shadow:var(--shadow); border-radius:10px; padding:8px 10px; font-weight:800; cursor:pointer; }
   .spacer{ flex:1 }
@@ -26,20 +45,30 @@
 
   .hud.hud--collapsed .lbl{ display:none; }
   .hud.hud--collapsed .chip{ padding:6px 10px; font-weight:800; }
-  .hud.hud--collapsed #btnStart{ position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:7; }
 
+  /* ADAPT: tailles dynamiques (JS ajuste width/height) */
   #basket{ position:absolute; bottom:8vh; left:50%; transform:translateX(-50%); width:120px; height:140px;
     background: url('Images/SVG/Gnome_Perso.svg') center bottom / contain no-repeat; border:none; box-shadow:none; transition: transform 80ms linear; }
   #basket.flipX{ transform: translateX(-50%) scaleX(-1); }
 
   .item{ position:absolute; width:58px; height:58px; will-change:transform; }
-  .item img, .item svg{ width:58px; height:58px; display:block; filter: drop-shadow(0 6px 6px rgba(0,0,0,.22)); }
+  /* ADAPT: image s’étire sur la taille courante de .item (qui est recalculée) */
+  .item img, .item svg{ width:100%; height:100%; display:block; filter: drop-shadow(0 6px 6px rgba(0,0,0,.22)); }
 
   .float{ position:absolute; pointer-events:none; font-weight:900; text-shadow:0 2px 0 rgba(0,0,0,.1); animation: floatUp .8s ease-out forwards; }
   @keyframes floatUp{ from{ transform:translate(-50%,0); opacity:0 } 20%{opacity:1} to{ transform:translate(-50%,-48px); opacity:0 } }
   canvas#fx{ position:absolute; inset:0; pointer-events:none; }
 
-  .overlay{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(255,249,244,.55); backdrop-filter: blur(2px); z-index:6; padding:20px; text-align:center; }
+  .overlay{
+    position:absolute; inset:0; display:grid; place-items:center;
+    background:rgba(255,249,244,.55); backdrop-filter: blur(2px);
+    z-index:6; padding:20px; text-align:center;
+    /* ADAPT: safe area padding */
+    padding-top: calc(20px + env(safe-area-inset-top));
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    padding-left: calc(20px + env(safe-area-inset-left));
+    padding-right: calc(20px + env(safe-area-inset-right));
+  }
   .panel{ background:var(--card); border:1px solid #f0e0c8; border-radius:18px; box-shadow:var(--shadow); padding:20px; max-width:640px; width:min(92vw,640px); }
   .panel h2{ margin:6px 0 8px } .panel p{ margin:0 0 12px }
 
@@ -50,9 +79,9 @@
   @keyframes pop{ from{transform:scale(.7); opacity:.6} to{transform:scale(1); opacity:1} }
 
   .avatar-grid{ display:grid; grid-template-columns:repeat(4, minmax(64px,1fr)); gap:10px; margin:10px 0 4px; }
-  .avatar{ border:2px solid #e9d9b7; border-radius:14px; padding:6px; cursor:pointer; background:#fff; box-shadow:var(--shadow); position:relative; }
+  .avatar{ border:2px solid #e9d9b7; border-radius:14px; padding:6px; cursor:pointer; background:#fff; box-shadow:var(--shadow); position:relative; display:grid; place-items:center; }
   .avatar.selected{ outline:3px solid var(--accent); border-color:var(--accent2); }
-  .avatar svg{ width:100%; height:auto; display:block; }
+  .avatar img{ width:72px; height:72px; object-fit:contain; display:block; }
   .name-row{ display:flex; gap:10px; align-items:center; margin:8px 0 4px; }
   .name-row input{ flex:1; padding:10px 12px; border-radius:10px; border:1px solid #e9d9b7; font-weight:700; }
   .mini-board{ background:#fff; border:1px solid #f0e0c8; border-radius:12px; padding:10px; box-shadow:var(--shadow); margin-top:12px; text-align:left; }
@@ -60,22 +89,21 @@
   .mini-board ol{ margin:0; padding-left:1.2rem; }
   .mini-row{ display:flex; align-items:center; gap:8px; }
 
-  /* >>> updated: mini-avatar affiche un SVG proprement */
   .mini-avatar{
-    width:22px; height:22px;
-    border-radius:6px;
-    overflow:hidden;
-    display:inline-grid; place-items:center;
-    background:#fff; border:1px solid #f0e0c8;
+    width:22px; height:22px; border-radius:6px; overflow:hidden;
+    display:inline-grid; place-items:center; background:#fff; border:1px solid #f0e0c8;
   }
-  .mini-avatar svg{ width:100%; height:100%; display:block; }
+  .mini-avatar img{ width:100%; height:100%; object-fit:contain; display:block; }
 
   @media (max-width: 480px){
     .hud .chip{ padding:6px 10px; font-size:14px; }
     .btn{ padding:10px 14px; font-size:15px; }
     .hud .hud-toggle{ padding:6px 8px; }
   }
-  .credit{ position:absolute; bottom:8px; right:12px; font-size:.85rem; opacity:.8; text-shadow:0 1px 2px rgba(255,255,255,.6) }
+  .credit{
+    position:absolute; right: max(12px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom));
+    font-size:.85rem; opacity:.8; text-shadow:0 1px 2px rgba(255,255,255,.6)
+  }
 </style>
 </head>
 <body>
@@ -91,7 +119,6 @@
     <div class="chip"><span class="lbl">Score</span><span class="val" id="score">0</span></div>
     <div class="chip"><span class="lbl">Temps</span><span class="val"><span id="time">20</span>s</span></div>
     <div class="spacer"></div>
-    <button id="btnStart" class="btn">Démarrer</button>
   </div>
 
   <div id="basket" aria-label="Gnome collecteur"></div>
@@ -176,7 +203,24 @@ const $ = s => document.querySelector(s);
 const game = $('#game'), basket = $('#basket');
 const fx = $('#fx'); const ctx = fx.getContext('2d');
 function setFxSize(){ fx.width = game.clientWidth; fx.height = game.clientHeight }
-addEventListener('resize', setFxSize); setFxSize();
+
+/* ADAPT: viewport units fixes (iOS/Android barres UI dynamiques) */
+function setViewportVars(){
+  const vv = window.visualViewport;
+  const h = vv ? vv.height : window.innerHeight;
+  const w = vv ? vv.width  : window.innerWidth;
+  document.documentElement.style.setProperty('--vh', (h/100) + 'px');
+  document.documentElement.style.setProperty('--vw', (w/100) + 'px');
+}
+setViewportVars();
+addEventListener('resize', ()=>{ setViewportVars(); setFxSize(); recalcScale(true); }, {passive:true});
+addEventListener('orientationchange', ()=>{ setTimeout(()=>{ setViewportVars(); setFxSize(); recalcScale(true); }, 250); }, {passive:true});
+if (window.visualViewport){
+  visualViewport.addEventListener('resize', ()=>{ setViewportVars(); setFxSize(); recalcScale(true); }, {passive:true});
+  visualViewport.addEventListener('scroll', ()=>{ setViewportVars(); }, {passive:true});
+}
+setFxSize();
+
 function rand(min,max){ return Math.random()*(max-min)+min; }
 function now(){ return performance.now(); }
 function pad2(n){ return n<10?'0'+n:''+n; }
@@ -227,7 +271,7 @@ const hud = document.getElementById('hud'); const hudToggle = document.getElemen
 const intro = $('#intro'), between = $('#between'), gameover = $('#gameover');
 const betweenTitle = $('#betweenTitle'), betweenMsg = $('#betweenMsg'), recapEl = $('#recap');
 const overTitle = $('#overTitle'), overMsg = $('#overMsg');
-const btnStart = $('#btnStart');
+
 const levelSplash = $('#levelSplash'), levelTitle = $('#levelTitle'), countdownEl = $('#countdown');
 
 /* ========= HUD toggle ========= */
@@ -236,7 +280,7 @@ hudToggle.addEventListener('click', ()=> setHudCollapsed(!hud.classList.contains
 
 /* ========= SUPABASE (temps réel) ========= */
 const SUPABASE_URL = 'https://gpkdtsxzgcqajdoxnllw.supabase.co';     // <— remplace si besoin
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdwa2R0c3h6Z2NxYWpkb3hubGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0MzIwMzAsImV4cCI6MjA3MTAwODAzMH0.mOgMv225hH4yX-0hm4jG-wOKdvKUtNpWNtjNEsTqOkM';                        // <— remplace si besoin
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdwa2R0c3h6Z2NxYWpkb3hubGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0MzIwMzAsImV4cCI6MjA3MTAwODAzMH0.mOgMv225hH4yX-0hm4jG-wOKdvKUtNpWNtjNEsTqOkM'; // <— remplace si besoin
 let sb = null;
 try{
   if(SUPABASE_URL.startsWith('http') && SUPABASE_ANON_KEY.length>10){
@@ -253,18 +297,32 @@ async function sbUpsertPlayer({name, avatar, bestScore, lastGame}){
   if(error) console.warn('upsert error', error);
 }
 
-/* ========= Profil & avatar ========= */
-const AVATARS = [
-  { id:'A', svg:`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="28" fill="#ffd166" stroke="#b76e00" stroke-width="3"/><circle cx="24" cy="28" r="4" fill="#2b1e17"/><circle cx="40" cy="28" r="4" fill="#2b1e17"/><path d="M22 40 q10 6 20 0" stroke="#2b1e17" stroke-width="4" fill="none" stroke-linecap="round"/></svg>` },
-  { id:'B', svg:`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="10" width="44" height="44" rx="10" fill="#8ecae6" stroke="#2b7085" stroke-width="3"/><circle cx="24" cy="28" r="4" fill="#2b1e17"/><circle cx="40" cy="28" r="4" fill="#2b1e17"/><path d="M20 42 q12 -6 24 0" stroke="#2b1e17" stroke-width="4" fill="none" stroke-linecap="round"/></svg>` },
-  { id:'C', svg:`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="36" r="22" fill="#06d6a0" stroke="#067a62" stroke-width="3"/><path d="M18 20 l14 -10 l14 10" stroke="#067a62" stroke-width="4" fill="#06d6a0"/><circle cx="24" cy="34" r="4" fill="#2b1e17"/><circle cx="40" cy="34" r="4" fill="#2b1e17"/><path d="M22 46 q10 5 20 0" stroke="#2b1e17" stroke-width="4" fill="none" stroke-linecap="round"/></svg>` },
-  { id:'D', svg:`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="28" fill="#ffb703" stroke="#b76e00" stroke-width="3"/><path d="M16 20 q16 -10 32 0" stroke="#b76e00" stroke-width="4" fill="none"/><circle cx="24" cy="32" r="4" fill="#2b1e17"/><circle cx="40" cy="32" r="4" fill="#2b1e17"/><path d="M22 42 q10 8 20 0" stroke="#2b1e17" stroke-width="4" fill="none" stroke-linecap="round"/></svg>` },
-];
-function getAvatarSvgById(id){
-  const a = AVATARS.find(x => x.id === id);
-  return a ? a.svg : AVATARS[0].svg;
+/* Récupère le meilleur score existant pour un pseudo (pour ne jamais descendre) */
+async function sbGetBestScoreByName(name){
+  if(!sb) return 0;
+  const { data, error } = await sb.from('leaderboard')
+    .select('best_score')
+    .eq('name', name)
+    .limit(1)
+    .maybeSingle();
+  if(error){ console.warn('fetch best error', error); return 0; }
+  return data?.best_score || 0;
 }
 
+/* ========= Avatars (images jointes) ========= */
+const AVATAR_PATH = 'Images/SVG/'; // dossier où tu places Avatar_1.svg ... Avatar_4.svg
+const AVATARS = [
+  { id:'1', src: AVATAR_PATH + 'Avatar_1.svg', label:'Avatar 1' },
+  { id:'2', src: AVATAR_PATH + 'Avatar_2.svg', label:'Avatar 2' },
+  { id:'3', src: AVATAR_PATH + 'Avatar_3.svg', label:'Avatar 3' },
+  { id:'4', src: AVATAR_PATH + 'Avatar_4.svg', label:'Avatar 4' },
+];
+function getAvatarImgById(id){
+  const a = AVATARS.find(x => x.id === id) || AVATARS[0];
+  return `<img src="${a.src}" alt="${a.label}" loading="lazy">`;
+}
+
+/* ========= Profil ========= */
 const LS_CUR = 'LM_CUR_USER';
 function getCurrentUser(){ try{ return JSON.parse(localStorage.getItem(LS_CUR)) || null; }catch{ return null; } }
 function setCurrentUser(u){ localStorage.setItem(LS_CUR, JSON.stringify(u)); }
@@ -285,7 +343,7 @@ async function sbFetchTop3(){
     const li=document.createElement('li');
     li.innerHTML = `
       <span class="mini-row">
-        <span class="mini-avatar">${getAvatarSvgById(e.avatar)}</span>
+        <span class="mini-avatar">${getAvatarImgById(e.avatar)}</span>
         <strong>${e.name}</strong> — ${e.best_score||0} pts
       </span>`;
     topList.appendChild(li);
@@ -304,8 +362,8 @@ if(sb){
 function buildAvatarGrid(){
   const grid = document.getElementById('avatarGrid'); grid.innerHTML='';
   AVATARS.forEach(a=>{
-    const div = document.createElement('div'); div.className='avatar'; div.dataset.id=a.id; div.title=`Avatar ${a.id}`;
-    div.innerHTML = a.svg;
+    const div = document.createElement('div'); div.className='avatar'; div.dataset.id=a.id; div.title=a.label;
+    div.innerHTML = `<img src="${a.src}" alt="${a.label}" loading="lazy">`;
     div.addEventListener('click', ()=>{
       [...grid.children].forEach(c=>c.classList.remove('selected'));
       div.classList.add('selected'); document.getElementById('introStart').disabled = !document.getElementById('playerName').value.trim();
@@ -323,15 +381,43 @@ function ensureProfileUI(){
   buildAvatarGrid(); renderTop3();
 }
 
-/* ========= État du jeu ========= */
+/* ========= État du jeu & ADAPT scale ========= */
 let items=[], nextSpawnAt=0, raf=null, tPrev=0, timerId=null, levelIndex=0;
 let caught=0, score=0, timeLeft=20, multiplier=1, multTimeout=null;
 let misses=0, missCap=0, streak=0, combo=1, maxCombo=1, lastWaveT=0;
 let running=false, levelStartMs=0;
 
-/* Gnome */
-const basketW=120, basketH=140;
-let basketX = game.clientWidth/2 - basketW/2, lastX = basketX;
+/* ADAPT: dimensions basées sur un écran de référence 390×844 */
+const BASE_W = 390, BASE_H = 844;
+let SCALE = 1;
+let ITEM_SIZE = 58;         // sera recalculé
+let basketW = 120, basketH = 140;
+let basketX = 0, lastX = 0;
+
+function recalcScale(applyToExisting=false){
+  const W = game.clientWidth, H = game.clientHeight;
+  const s = Math.min(W/BASE_W, H/BASE_H);
+  SCALE = Math.max(.72, Math.min(1.6, s)); // garde des limites raisonnables
+  ITEM_SIZE = Math.round(58 * SCALE);
+  basketW = Math.round(120 * SCALE);
+  basketH = Math.round(140 * SCALE);
+
+  // Applique tailles
+  basket.style.width = basketW + 'px';
+  basket.style.height = basketH + 'px';
+
+  if(applyToExisting){
+    // adapte les items visibles si on a redimensionné pendant le jeu
+    for(const it of items){
+      it.size = ITEM_SIZE;
+      it.node.style.width = it.size + 'px';
+      it.node.style.height = it.size + 'px';
+    }
+    // recadre le panier
+    setBasket(basketX + basketW/2);
+  }
+}
+recalcScale(false);
 
 /* Niveaux */
 const LEVELS = [
@@ -341,22 +427,24 @@ const LEVELS = [
 ];
 
 /* ========= Démarrage / boutons ========= */
-document.getElementById('introStart').onclick = () => {
+document.getElementById('introStart').onclick = async () => {
   initAudio(); resumeAudio();
+
   const nameRaw = document.getElementById('playerName').value.trim().slice(0,16);
   const name = nameRaw.replace(/[^\p{L}\p{N}_\- ]/gu,'');
-  const sel = document.querySelector('.avatar.selected'); const avatar = sel ? sel.dataset.id : 'A';
-  const cur = { name, avatar, bestScore: 0, lastGame:null };
+  const sel = document.querySelector('.avatar.selected'); const avatar = sel ? sel.dataset.id : AVATARS[0].id;
+
+  const cloudBest = await sbGetBestScoreByName(name);
+  const cur = { name, avatar, bestScore: cloudBest|0, lastGame:null };
   setCurrentUser(cur);
+
   renderTop3();
 
-  /* >>> reset score pour une NOUVELLE partie */
-  score = 0;
-  scoreEl.textContent = '0';
+  score = 0; scoreEl.textContent = '0';
 
   startLevel(0);
 };
-btnStart.onclick        = () => { initAudio(); resumeAudio(); startLevel(levelIndex); };
+
 document.getElementById('nextLevel').onclick = () => { initAudio(); resumeAudio(); startLevel(levelIndex+1); };
 document.getElementById('replayLevel').onclick=() => { initAudio(); resumeAudio(); startLevel(levelIndex); };
 document.getElementById('retry').onclick     = () => { initAudio(); resumeAudio(); startLevel(levelIndex); };
@@ -375,6 +463,11 @@ function startLevel(i){
   items.forEach(el=>el.node.remove()); items=[];
   nextSpawnAt=0; lastWaveT=0; caught=0; timeLeft=L.duration; multiplier=1; clearTimeout(multTimeout);
   misses=0; missCap=L.missLimit; streak=0; combo=1; maxCombo=1;
+
+  // ADAPT: recalcul à l’entrée du niveau (au cas où on a tourné l’écran)
+  setViewportVars(); setFxSize(); recalcScale(false);
+  basketX = game.clientWidth/2 - basketW/2; lastX = basketX;
+  basket.style.left=(basketX + basketW/2)+'px';
 
   scoreEl.textContent=score; progressEl.textContent=caught; targetEl.textContent=L.target; timeEl.textContent=timeLeft;
 
@@ -411,7 +504,10 @@ async function finish(win){
   const cur = getCurrentUser();
   if(cur){
     const lastGame = { date: new Date().toISOString(), level: levelIndex+1, score, caught, target:L.target, timeUsedSec: used, misses, bestCombo:maxCombo };
-    const bestScore = Math.max(cur.bestScore||0, score);
+
+    const cloudBest = await sbGetBestScoreByName(cur.name);
+    const bestScore = Math.max(cloudBest||0, cur.bestScore||0, score);
+
     setCurrentUser({ ...cur, bestScore, lastGame });
 
     await sbUpsertPlayer({ name: cur.name, avatar: cur.avatar, bestScore, lastGame });
@@ -454,7 +550,8 @@ function tick(ts){
     const it = items[k];
     it.vy += L.gravity * dt; it.y += it.vy * dt;
     it.node.style.transform = `translate(${it.x}px, ${it.y}px) rotate(${it.rot += it.rotSpd}deg)`;
-    const itRect = {left:it.x, right:it.x+58, top:it.y, bottom:it.y+58};
+    const s = it.size || ITEM_SIZE;
+    const itRect = {left:it.x, right:it.x+s, top:it.y, bottom:it.y+s};
 
     if (it.y > H){
       it.node.remove();
@@ -482,19 +579,23 @@ function spawnOne(){
   else if(type==='jar') node.innerHTML=JAMJAR_TAG;
   else if(type==='gnome') node.innerHTML=GNOME_TAG;
 
-  const x = rand(10, game.clientWidth-68), y=-70;
+  const x = rand(10, game.clientWidth - (ITEM_SIZE+10)), y=-ITEM_SIZE-12;
   const base=L.baseSpeed, vy=base+rand(-40,40);
   const rotSpd = (Math.random()>.5?1:-1)*rand(.2,.6);
+
+  node.style.width = ITEM_SIZE + 'px';
+  node.style.height = ITEM_SIZE + 'px';
   node.style.transform=`translate(${x}px, ${y}px)`;
   game.appendChild(node);
-  items.push({type,x,y,vy,rot:0,rotSpd,node});
+  items.push({type,x,y,vy,rot:0,rotSpd,node,size:ITEM_SIZE});
 }
 
 /* ========= Catch / Score / Combo ========= */
 function catchItem(it){
   const L = LEVELS[levelIndex];
   it.node.remove();
-  const cx = it.x+29, cy = it.y+29;
+  const s = it.size || ITEM_SIZE;
+  const cx = it.x + s/2, cy = it.y + s/2;
 
   if (it.type==='mirabelle'){
     caught++; progressEl.textContent=caught;
@@ -515,7 +616,7 @@ function setBasket(x){
   if(newX > lastX) basket.classList.remove('flipX'); else if(newX < lastX) basket.classList.add('flipX');
   lastX=newX; basketX=newX; basket.style.left=(basketX + basketW/2)+'px';
 }
-document.addEventListener('mousemove', e=> setBasket(e.clientX));
+document.addEventListener('mousemove', e=> setBasket(e.clientX), {passive:true});
 document.addEventListener('touchmove', e=> { const t=e.touches[0]; setBasket(t.clientX); }, {passive:true});
 
 /* ========= Démarrage ========= */
