@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>La Marabelle — Panier à Mirabelles (Vidéo + Niveaux)</title>
-<meta name="description" content="Attrape les fruits ! 3 niveaux, gnome, pot de confiture, fruits pourris, et fond vidéo.">
+<meta name="description" content="Attrape les fruits ! 3 niveaux, gnome, pot de confiture, fast-food malus, et fond vidéo.">
 <style>
   :root{
     --ink:#2b1e17; --card:#ffffffea; --shadow:0 12px 30px rgba(0,0,0,.12);
@@ -19,7 +19,6 @@
     position: fixed; inset: 0; width: 100%; height: 100%;
     object-fit: cover; z-index: -2; background:#fff9f4;
   }
-  /* Voile léger pour le contraste du HUD/jeu */
   .videoOverlay{
     position: fixed; inset:0; z-index:-1;
     background: radial-gradient(100% 60% at 50% 20%, rgba(255,255,255,.15), rgba(0,0,0,.20));
@@ -36,17 +35,16 @@
   .btn{ appearance:none; border:0; background:var(--accent2); color:#fff; padding:10px 14px; border-radius:12px; font-weight:800; box-shadow:0 10px 18px rgba(251,133,0,.25); cursor:pointer; }
   .btn.ghost{ background:#fff; color:var(--ink); border:1px solid #f0e0c8; }
 
-  /* Panier */
+  /* GNOME (remplace le panier) */
   #basket{
-    position:absolute; bottom:8vh; width:110px; height:64px; left:50%; transform:translateX(-50%);
-    border-radius:0 0 55px 55px; background:repeating-linear-gradient(45deg, #b97a3b, #b97a3b 10px, #d49555 10px, #d49555 20px);
-    border:3px solid #8b5a2b; box-shadow:0 8px 18px rgba(0,0,0,.25) inset, 0 8px 18px rgba(0,0,0,.15);
+    position:absolute; bottom:8vh; left:50%; transform:translateX(-50%);
+    width:120px; height:140px;
+    background: url('Images/SVG/Gnome_Perso.svg') center bottom / contain no-repeat;
+    border:none; box-shadow:none;
+    transition: transform 80ms linear;
   }
-  #basket:before{
-    content:""; position:absolute; left:10px; right:10px; top:-36px; height:34px; border:6px solid #8b5a2b; border-bottom:none; border-radius:22px 22px 0 0;
-    box-shadow: inset 0 0 0 3px rgba(255,255,255,.25);
-    background:linear-gradient(180deg, rgba(255,255,255,.15), transparent);
-  }
+  #basket.flipX{ transform: translateX(-50%) scaleX(-1); }
+  #basket:before{ content:none; }
 
   /* Items */
   .item{ position:absolute; width:58px; height:58px; will-change:transform; }
@@ -78,20 +76,22 @@
     <div class="pill">Niveau : <span id="level">1</span>/3</div>
     <div class="pill">Objectif : <span id="progress">0</span>/<span id="target">10</span></div>
     <div class="pill">Score : <span id="score">0</span></div>
+    <div class="pill">Ratés : <span id="miss">0</span>/<span id="missMax">0</span></div>
+    <div class="pill">Combo : <span id="combo">x1</span></div>
     <div class="pill">Temps : <span id="time">20</span>s</div>
     <div class="spacer"></div>
     <button id="btnStart" class="btn">Démarrer</button>
   </div>
 
-  <!-- Panier + FX -->
-  <div id="basket"></div>
+  <!-- Gnome + FX -->
+  <div id="basket" aria-label="Gnome collecteur"></div>
   <canvas id="fx"></canvas>
 
   <!-- Overlays -->
   <div id="intro" class="overlay">
     <div class="panel">
-      <h2>La Marabelle — Panier à Mirabelles</h2>
-      <p>Attrape les fruits 🍑 ! Évite les pourris 🥀, vise le gnome 🍄 (+5) et le pot 🍯 (x2 pendant 5s).</p>
+      <h2>La Marabelle — Récolte du Gnome</h2>
+      <p>Attrape les fruits 🍑 ! Évite le fast-food 🍔, vise le gnome 🍄 (+5) et le pot 🍯 (x2 pendant 5s).</p>
       <p>3 niveaux : de doux à corsé. Prêt·e ?</p>
       <button class="btn" id="introStart">Jouer</button>
     </div>
@@ -123,23 +123,14 @@
 </div>
 
 <script>
-/* ========= Sprites bonus inline (gnome/pot/pourri) ========= */
+/* ========= Sprites/Tags ========= */
 const SVG_ROTTEN = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 58 58">
   <circle cx="29" cy="29" r="26" fill="#b56a2a" stroke="#5e2b18" stroke-width="3"/>
   <path d="M18 36 q10 -6 20 0" stroke="#2b1e17" stroke-width="4" fill="none" stroke-linecap="round"/>
   <circle cx="21" cy="27" r="4" fill="#2b1e17"/><circle cx="37" cy="27" r="4" fill="#2b1e17"/>
 </svg>`;
-const SVG_JAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 58 58">
-  <rect x="12" y="10" width="34" height="40" rx="10" fill="#ffcf6a" stroke="#b76e00" stroke-width="3"/>
-  <rect x="14" y="6" width="30" height="10" rx="4" fill="#8ecae6" stroke="#2b7085" stroke-width="3"/>
-  <path d="M15 28 q7 6 14 0 q7 -6 14 0" stroke="#e58a00" stroke-width="2" fill="none"/>
-</svg>`;
-const SVG_GNOME = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 58 58">
-  <circle cx="29" cy="36" r="12" fill="#f2d3b1" stroke="#a06b3b" stroke-width="3"/>
-  <path d="M17 38 q12 8 24 0" stroke="#a06b3b" stroke-width="3" fill="none"/>
-  <polygon points="29,6 16,30 42,30" fill="#ef476f" stroke="#a61f3b" stroke-width="3"/>
-  <circle cx="24" cy="34" r="2" fill="#2b1e17"/><circle cx="34" cy="34" r="2" fill="#2b1e17"/>
-</svg>`;
+const GNOME_TAG = `<img alt="gnome bonus" src="Images/SVG/Gnome_Perso.svg" />`;
+const JAMJAR_TAG = `<img alt="pot de confiture" src="Images/SVG/JamJar.svg" />`;
 
 /* ========= Utilitaires ========= */
 const $ = s => document.querySelector(s);
@@ -150,6 +141,7 @@ addEventListener('resize', setFxSize); setFxSize();
 function rand(min,max){ return Math.random()*(max-min)+min; }
 function now(){ return performance.now(); }
 
+/* ========= FX ========= */
 let particles = [], anim=null;
 function burst(x,y,colors=['#ffb703','#fb8500','#8ecae6','#3a7a3a']){
   for(let i=0;i<18;i++){
@@ -176,25 +168,30 @@ function floatLabel(x,y,text,good=true){
   game.appendChild(el); setTimeout(()=> el.remove(), 820);
 }
 
-/* ========= Config fruits pixel (tes SVG) ========= */
+/* ========= Fruits/Assets ========= */
 const FRUIT_FILES = [
-  'Pomme.svg',
-  'Pomme rouge.svg',
-  'Poire.svg',
-  'Orange.svg',
-  'Citron.svg',
-  'Prune.svg'
+  'Pomme.svg','Pomme rouge.svg','Poire.svg','Orange.svg','Citron.svg','Prune.svg'
 ];
 function fruitImgTag(){
-  // gère les espaces via encodeURIComponent
   const name = FRUIT_FILES[(Math.random()*FRUIT_FILES.length)|0];
   const src = 'Images/SVG/' + encodeURIComponent(name);
   return `<img alt="fruit" src="${src}" />`;
 }
+const FASTFOOD_FILES = [
+  'Burger.svg','Frites.svg','Pizza.svg','Donut.svg','HotDog.svg','Burrito.svg'
+];
+function fastFoodImgTag(){
+  const name = FASTFOOD_FILES[(Math.random()*FASTFOOD_FILES.length)|0];
+  const src = 'Images/SVG/' + encodeURIComponent(name);
+  return `<img alt="junk" src="${src}" />`;
+}
 
-/* ========= Logique du jeu ========= */
+/* ========= HUD refs ========= */
 const levelLabel = $('#level'), progressEl = $('#progress'), targetEl = $('#target');
 const scoreEl = $('#score'), timeEl = $('#time');
+const missEl = $('#miss'), missMaxEl = $('#missMax'), comboEl = $('#combo');
+
+/* ========= Overlays/Buttons ========= */
 const intro = $('#intro'), between = $('#between'), gameover = $('#gameover');
 const betweenTitle = $('#betweenTitle'), betweenMsg = $('#betweenMsg');
 const overTitle = $('#overTitle'), overMsg = $('#overMsg');
@@ -206,38 +203,101 @@ $('#replayLevel').onclick = ()=> startLevel(levelIndex);
 $('#retry').onclick = ()=> startLevel(levelIndex);
 $('#quit').onclick = ()=> { gameover.style.display='none'; intro.style.display='grid'; };
 
-let items=[], lastSpawn=0, raf=null, tPrev=0, timerId=null, levelIndex=0;
-let caught=0, score=0, timeLeft=20, multiplier=1, multTimeout=null;
-let basketX = game.clientWidth/2 - 55;
+/* ========= État ========= */
+let items = [], lastSpawn = 0, nextSpawnAt = 0, raf = null, tPrev = 0, timerId = null, levelIndex = 0;
+let caught = 0, score = 0, timeLeft = 20, multiplier = 1, multTimeout = null;
+let misses = 0, missCap = 0;       // fruits manqués (comptés seulement pour les fruits)
+let streak = 0, combo = 1;         // série d’attrapages
+let lastWaveT = 0;                 // chrono des vagues
+let running = false;               // <<< FLAG global pour figer entre niveaux
+
+/* Taille du gnome (collisions) */
+const basketW = 120, basketH = 140;
+/* Position initiale centrée */
+let basketX = game.clientWidth/2 - basketW/2;
+let lastX = basketX;
+
+/* ========= Niveaux équilibrés façon catcher mobile ========= */
 const LEVELS = [
-  { target:10, duration:20, baseSpeed:150, spawn:650, bad:0.05, gnome:0.04, jar:0.05 },
-  { target:15, duration:20, baseSpeed:200, spawn:520, bad:0.08, gnome:0.05, jar:0.05 },
-  { target:20, duration:20, baseSpeed:260, spawn:420, bad:0.12, gnome:0.06, jar:0.06 }
+  // Niveau 1 : découverte
+  {
+    target: 10, duration: 20,
+    baseSpeed: 140, gravity: 280,
+    spawnMin: 620, spawnMax: 820,
+    waveEvery: 6000, waveBoost: -220,
+    maxSimultaneous: 4, missLimit: 5,
+    weights: { mirabelle: 0.78, rotten: 0.08, gnome: 0.06, jar: 0.08 },
+    comboUp: 5, comboCap: 4, jarDuration: 5000
+  },
+  // Niveau 2 : rythme
+  {
+    target: 15, duration: 20,
+    baseSpeed: 190, gravity: 320,
+    spawnMin: 520, spawnMax: 700,
+    waveEvery: 5500, waveBoost: -240,
+    maxSimultaneous: 6, missLimit: 5,
+    weights: { mirabelle: 0.72, rotten: 0.12, gnome: 0.06, jar: 0.10 },
+    comboUp: 4, comboCap: 5, jarDuration: 5000
+  },
+  // Niveau 3 : challenge
+  {
+    target: 20, duration: 20,
+    baseSpeed: 250, gravity: 360,
+    spawnMin: 420, spawnMax: 620,
+    waveEvery: 5000, waveBoost: -260,
+    maxSimultaneous: 7, missLimit: 4,
+    weights: { mirabelle: 0.66, rotten: 0.16, gnome: 0.06, jar: 0.12 },
+    comboUp: 3, comboCap: 6, jarDuration: 6000
+  }
 ];
 
+/* ========= Démarrage d'un niveau ========= */
 function startLevel(i){
-  if(i>=LEVELS.length){
+  if(i >= LEVELS.length){
     between.style.display='none'; intro.style.display='grid';
     betweenTitle.textContent = 'Champion·ne de la confiture !';
     return;
   }
   levelIndex = i;
+  const L = LEVELS[i];
+
+  // Reset
   intro.style.display='none'; between.style.display='none'; gameover.style.display='none';
-  items.forEach(el=>el.node.remove()); items=[]; lastSpawn=0;
-  caught=0; timeLeft=LEVELS[i].duration; multiplier=1; clearTimeout(multTimeout);
-  scoreEl.textContent = score; progressEl.textContent = caught; targetEl.textContent = LEVELS[i].target;
+  items.forEach(el => el.node.remove()); items = [];
+  lastSpawn = 0; nextSpawnAt = 0; lastWaveT = 0;
+  caught = 0; timeLeft = L.duration; multiplier = 1; clearTimeout(multTimeout);
+  misses = 0; missCap = L.missLimit; streak = 0; combo = 1;
+
+  // HUD
+  scoreEl.textContent = score;
+  progressEl.textContent = caught; targetEl.textContent = L.target;
   timeEl.textContent = timeLeft; levelLabel.textContent = i+1;
+  missEl.textContent = misses; missMaxEl.textContent = missCap;
+  comboEl.textContent = 'x' + combo;
+
+  // Timer
   clearInterval(timerId);
-  timerId = setInterval(()=>{ 
-    timeLeft--; timeEl.textContent=timeLeft; 
-    if(timeLeft<=0){ finish(false); }
-  },1000);
+  timerId = setInterval(()=>{
+    if (!running) return;         // ne décrémente pas si le jeu est figé
+    timeLeft--; timeEl.textContent = timeLeft;
+    if (timeLeft <= 0) { running = false; finish(false); }
+  }, 1000);
+
+  // RAF
+  running = true;                 // <<< active le jeu
   cancelAnimationFrame(raf); tPrev = now(); raf = requestAnimationFrame(tick);
 }
 
+/* ========= Fin de niveau ========= */
 function finish(win){
-  clearInterval(timerId); cancelAnimationFrame(raf);
-  items.forEach(el=>el.node.remove()); items=[];
+  running = false;                          // <<< fige le jeu
+  clearInterval(timerId);
+  cancelAnimationFrame(raf);
+  clearTimeout(multTimeout);
+  items.forEach(el=>el.node.remove());
+  items = [];
+  nextSpawnAt = Number.POSITIVE_INFINITY;   // <<< bloque tout prochain spawn
+
   if(win){
     if(levelIndex < LEVELS.length-1){
       betweenTitle.textContent = 'Bravo !';
@@ -257,90 +317,156 @@ function finish(win){
   }
 }
 
+/* ========= Utiles ========= */
 function rectsOverlap(a,b){
   return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 }
 
+/* ========= Boucle jeu ========= */
 function tick(ts){
-  const dt = (ts - tPrev)/1000; tPrev = ts; const L = LEVELS[levelIndex];
-  if(ts - lastSpawn > L.spawn){ spawnOne(); lastSpawn = ts; }
-  const H = game.clientHeight;
-  const basketRect = {left:basketX, right:basketX+110, top:game.clientHeight- (8*H/100) -64, bottom:game.clientHeight- (8*H/100)};
-  for(let k=items.length-1;k>=0;k--){
-    const it = items[k];
-    it.vy += 300*dt;
-    it.y += it.vy*dt;
-    it.node.style.transform = `translate(${it.x}px, ${it.y}px) rotate(${it.rot+=it.rotSpd}deg)`;
-    const itRect = {left:it.x, right:it.x+58, top:it.y, bottom:it.y+58};
-    if(rectsOverlap(itRect, basketRect)){ catchItem(it); items.splice(k,1); continue; }
-    if(it.y > H){ it.node.remove(); items.splice(k,1); }
+  if (!running) return;             // <<< ne fait rien si figé
+  const L = LEVELS[levelIndex];
+  const dt = (ts - tPrev)/1000; tPrev = ts;
+
+  // Planification spawn : aléatoire + vagues, cap simultanés
+  if (ts >= nextSpawnAt && items.length < L.maxSimultaneous) {
+    spawnOne();
+    const baseDelay = rand(L.spawnMin, L.spawnMax);
+    const inWave = (ts - lastWaveT) < 900;
+    const waveDue = (ts - lastWaveT) > L.waveEvery;
+    nextSpawnAt = ts + (baseDelay + (inWave ? L.waveBoost : 0));
+    if (waveDue) lastWaveT = ts;
   }
-  raf = requestAnimationFrame(tick);
+
+  const H = game.clientHeight;
+  const basketRect = {
+    left: basketX, right: basketX + basketW,
+    top:  game.clientHeight - (8*H/100) - basketH,
+    bottom: game.clientHeight - (8*H/100)
+  };
+
+  for (let k = items.length-1; k >= 0; k--){
+    const it = items[k];
+    it.vy += L.gravity * dt;
+    it.y  += it.vy * dt;
+    it.node.style.transform = `translate(${it.x}px, ${it.y}px) rotate(${it.rot += it.rotSpd}deg)`;
+
+    const itRect = {left:it.x, right:it.x+58, top:it.y, bottom:it.y+58};
+
+    if (rectsOverlap(itRect, basketRect)){
+      catchItem(it);
+      items.splice(k,1);
+      continue;
+    }
+    if (it.y > H){
+      it.node.remove();
+      // Compter comme raté uniquement les fruits (mirabelles/pommes…)
+      if (it.type === 'mirabelle'){
+        misses++; missEl.textContent = misses;
+        streak = 0; combo = 1; comboEl.textContent = 'x1';
+        if (misses >= missCap) { running = false; finish(false); return; }
+      }
+      items.splice(k,1);
+    }
+  }
+  if (running) raf = requestAnimationFrame(tick);  // <<< replannifie seulement si actif
 }
 
+/* ========= Spawn pondéré ========= */
 function spawnOne(){
+  if (!running) return; // sécurité
   const L = LEVELS[levelIndex];
   const r = Math.random();
-  let type='mirabelle';
-  if(r < L.bad) type='rotten';
-  else if(r < L.bad + L.gnome) type='gnome';
-  else if(r < L.bad + L.gnome + L.jar) type='jar';
+  const w = L.weights;
+  const cutMir = w.mirabelle;
+  const cutRot = cutMir + w.rotten;
+  const cutGno = cutRot + w.gnome;
+  let type = 'jar';
+  if (r < cutMir) type = 'mirabelle';
+  else if (r < cutRot) type = 'rotten';
+  else if (r < cutGno) type = 'gnome';
 
   const node = document.createElement('div'); node.className = `item ${type}`;
-  // Fruits normaux = tes SVG pixel (img), le reste = SVG inline
-  if(type==='mirabelle'){
-    node.innerHTML = fruitImgTag();
-  }else if(type==='rotten'){
-    node.innerHTML = SVG_ROTTEN;
-  }else if(type==='jar'){
-    node.innerHTML = SVG_JAR;
-  }else if(type==='gnome'){
-    node.innerHTML = SVG_GNOME;
-  }
+  if(type==='mirabelle'){ node.innerHTML = fruitImgTag(); }
+  else if(type==='rotten'){ node.innerHTML = fastFoodImgTag(); }
+  else if(type==='jar'){ node.innerHTML = JAMJAR_TAG; }
+  else if(type==='gnome'){ node.innerHTML = GNOME_TAG; }
 
-  const x = rand(10, game.clientWidth-68), y = -70;
-  const base = L.baseSpeed, vy = base + rand(-40,40);
-  const rotSpd = (Math.random()>.5?1:-1)*rand(.2,.6);
+  const x = rand(10, game.clientWidth - 68), y = -70;
+  const base = L.baseSpeed, vy = base + rand(-40, 40);
+  const rotSpd = (Math.random()>.5?1:-1) * rand(.2, .6);
   node.style.transform = `translate(${x}px, ${y}px)`;
   game.appendChild(node);
   items.push({type, x, y, vy, rot:0, rotSpd, node});
 }
 
+/* ========= Catch / Score / Combo ========= */
 function catchItem(it){
+  const L = LEVELS[levelIndex];
   it.node.remove();
-  const cx = it.x+29, cy = it.y+29;
-  switch(it.type){
-    case 'mirabelle':
-      caught++; progressEl.textContent = caught;
-      score += 1*multiplier; scoreEl.textContent = score;
-      floatLabel(cx, cy, `+${1*multiplier}`, true); burst(cx, cy);
-      if(caught >= LEVELS[levelIndex].target){ finish(true); }
-      break;
-    case 'rotten':
-      score = Math.max(0, score-3); scoreEl.textContent = score;
-      floatLabel(cx, cy, '−3', false);
-      break;
-    case 'gnome':
-      score += 5*multiplier; scoreEl.textContent = score;
-      floatLabel(cx, cy, `+${5*multiplier} 🍄`, true); burst(cx, cy, ['#ef476f','#ffd166','#06d6a0','#118ab2']);
-      break;
-    case 'jar':
-      multiplier = 2; floatLabel(cx, cy, 'x2 🍯', true);
-      clearTimeout(multTimeout);
-      multTimeout = setTimeout(()=> multiplier=1, 5000);
-      break;
+  const cx = it.x + 29, cy = it.y + 29;
+
+  if (it.type === 'mirabelle'){
+    caught++; progressEl.textContent = caught;
+
+    // Combo (monte toutes les N prises d'affilée)
+    streak++;
+    if (streak % L.comboUp === 0 && combo < L.comboCap) {
+      combo++; comboEl.textContent = 'x' + (combo * (multiplier||1));
+      floatLabel(cx, cy-10, 'COMBO ↑', true);
+    }
+
+    const pts = 1 * (multiplier||1) * combo;
+    score += pts; scoreEl.textContent = score;
+    floatLabel(cx, cy, `+${pts}`, true); burst(cx, cy);
+
+    if (caught >= L.target){
+      running = false;     // <<< stop avant l’overlay
+      finish(true);
+    }
+    return;
+  }
+
+  if (it.type === 'rotten'){
+    score = Math.max(0, score - 3);
+    scoreEl.textContent = score;
+    streak = 0; combo = 1; comboEl.textContent = 'x1';
+    floatLabel(cx, cy, '−3 🍔', false);
+    return;
+  }
+
+  if (it.type === 'gnome'){
+    const pts = 5 * (multiplier||1) * combo;
+    score += pts; scoreEl.textContent = score;
+    floatLabel(cx, cy, `+${pts} 🍄`, true);
+    burst(cx, cy, ['#ef476f','#ffd166','#06d6a0','#118ab2']);
+    return;
+  }
+
+  if (it.type === 'jar'){
+    multiplier = 2;
+    comboEl.textContent = 'x' + (combo * multiplier);
+    floatLabel(cx, cy, 'x2 🍯', true);
+    clearTimeout(multTimeout);
+    multTimeout = setTimeout(()=>{
+      multiplier = 1;
+      comboEl.textContent = 'x' + combo;
+    }, L.jarDuration);
   }
 }
 
-/* ========= Contrôles panier ========= */
- /* ========= Contrôles panier ========= */
-  function clamp(v,min,max){ return v<min?min:(v>max?max:v); }
-  function setBasket(x){
-    basketX = clamp(x-55, 0, game.clientWidth-110);
-    basket.style.left = (basketX+55) + 'px';
-  }
-  document.addEventListener('mousemove', e=> setBasket(e.clientX));
-  document.addEventListener('touchmove', e=> { const t=e.touches[0]; setBasket(t.clientX); }, {passive:true});
+/* ========= Contrôles gnome (flip direction) ========= */
+function clamp(v,min,max){ return v<min?min:(v>max?max:v); }
+function setBasket(x){
+  const newX = clamp(x - basketW/2, 0, game.clientWidth - basketW);
+  if(newX > lastX){ basket.classList.remove('flipX'); }
+  else if(newX < lastX){ basket.classList.add('flipX'); }
+  lastX = newX;
+  basketX = newX;
+  basket.style.left = (basketX + basketW/2) + 'px';
+}
+document.addEventListener('mousemove', e=> setBasket(e.clientX));
+document.addEventListener('touchmove', e=> { const t=e.touches[0]; setBasket(t.clientX); }, {passive:true});
 
 /* ========= Démarrage ========= */
 intro.style.display='grid';
@@ -351,8 +477,7 @@ intro.style.display='grid';
   (function() {
     const video = document.getElementById('bgVideo');
     if (!video) return;
-    const RATE = 0.5; // ajuste si besoin (0.25 très lent, 1 normal)
-
+    const RATE = 0.5;
     function applyRate() {
       video.defaultPlaybackRate = RATE;
       video.playbackRate = RATE;
